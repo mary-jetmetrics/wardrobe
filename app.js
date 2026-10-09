@@ -2,6 +2,7 @@
 // Гардероб. Оболочка публичная, данные — в закрытом репозитории mary-jetmetrics/wardrobe-data,
 // доступ по ключу (fine-grained token), который вводится один раз на устройстве.
 // Сам каталог — catalog.js (тот же код, что у локального каталога, собирается build_web.py).
+(() => {
 const OWNER = 'mary-jetmetrics', REPO = 'wardrobe-data', BRANCH = 'main';
 const API = `https://api.github.com/repos/${OWNER}/${REPO}`;
 const LS = {
@@ -83,3 +84,4 @@ async function boot() {
   const s = document.createElement('script'); s.src = 'catalog.js?v=' + (window.__BUILD || ''); document.body.appendChild(s);
 }
 boot();
+})();
