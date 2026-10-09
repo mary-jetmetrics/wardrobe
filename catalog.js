@@ -20,7 +20,7 @@ const colorGroup = (c) => COLOR_GROUPS.find(g => g.colors.some(x => (c || '').st
 const swatch = (c) => { const k = Object.keys(SW).sort((a, b) => b.length - a.length).find(x => (c || '').startsWith(x)); return k ? SW[k] : '#e6e4e2'; };
 const esc = (s) => String(s || '').replace(/[&<>"]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m]));
 const md = (s) => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/`(.+?)`/g, '$1').replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
-const st = { cat: null, sub: null, color: null, brands: [], shop: '', q: '', photo: '', link: '', status: '', core: '', fav: '', length: '', sil: '', sleeve: '', neck: '', sort: 'no' };
+const st = { cat: null, sub: null, colors: [], brands: [], shop: '', q: '', photo: '', link: '', status: '', core: '', fav: '', sort: 'no' };
 try { Object.assign(st, JSON.parse(localStorage.getItem('wardrobe-filters') || '{}')); } catch (e) {}
 if (typeof st.photo !== 'string') st.photo = st.photo ? 'yes' : '';
 if ('brand' in st) { if (st.brand) st.brands = [String(st.brand).toLowerCase()]; delete st.brand; }
@@ -36,7 +36,14 @@ const BRANDS = (() => { const m = new Map(); for (const i of ITEMS) { const k = 
   return [...[...m].map(([k, e]) => ({ k, name: Object.entries(e).sort((a, b) => b[1] - a[1])[0][0] })).sort((a, b) => a.name.localeCompare(b.name, 'ru')), { k: OTHER, name: 'Другие' }]; })();
 let brandQ = '';
 delete st.transit;
-if (st.color && !COLOR_GROUPS.some(g => g.name === st.color)) st.color = null;
+// цвет — множественный выбор (Мария, 09.10.26); фильтры фасона убраны — его покрывают категории
+if (st.color) st.colors = [st.color];
+if (!Array.isArray(st.colors)) st.colors = [];
+st.colors = st.colors.filter(c => COLOR_GROUPS.some(g => g.name === c));
+for (const k of ['color', 'length', 'sil', 'sleeve', 'neck']) delete st[k];
+const CLEAR = { cat: null, sub: null, colors: [], brands: [], shop: '', q: '', photo: '', link: '', status: '', core: '', fav: '' };
+const brandsOn = () => st.brands.length && st.brands.length < BRANDS.length;
+const anyOn = () => !!(st.cat || st.colors.length || brandsOn() || st.shop || st.q || st.photo || st.link || st.status || st.core || st.fav);
 const save = () => { try { localStorage.setItem('wardrobe-filters', JSON.stringify(st)); } catch (e) {} };
 
 function match(it, skip) {
@@ -44,7 +51,7 @@ function match(it, skip) {
   if (qn) return it.no === +qn[1];
   if (skip !== 'cat' && st.cat && it.cat !== st.cat) return false;
   if (skip !== 'cat' && st.sub && it.sub !== st.sub) return false;
-  if (skip !== 'color' && st.color && colorGroup(it.color)?.name !== st.color) return false;
+  if (skip !== 'color' && st.colors.length && !st.colors.includes(colorGroup(it.color)?.name)) return false;
   if (skip !== 'brand' && st.brands.length && st.brands.length < BRANDS.length && !st.brands.includes(bgroup(it.brand))) return false;
   if (st.shop && !(it.shop || '').split(', ').includes(st.shop)) return false;
   if (st.photo === 'yes' && !it.photo) return false;
@@ -55,7 +62,6 @@ function match(it, skip) {
   if (st.core === 'yes' && !it.core) return false;
   if (st.core === 'no' && it.core) return false;
   if (st.fav === 'yes' && !it.fav) return false;
-  for (const f of ['length', 'sil', 'sleeve', 'neck']) if (st[f] && it[f] !== st[f]) return false;
   if (st.q) { const hay = (it.name + ' ' + it.brand + ' ' + it.color + ' ' + it.fabric + ' ' + it.sub + ' ' + it.kind + ' ' + it.notes + ' #' + it.no).toLowerCase(); if (!st.q.toLowerCase().split(/\s+/).every(w => hay.includes(w))) return false; }
   return true;
 }
@@ -75,7 +81,7 @@ function renderFilters() {
     return `<button class="fbtn" data-cat="${c}" aria-pressed="${st.cat === c && !st.sub}"><span>${c}</span><span class="n">${n}</span></button>` + (subs.length ? `<div class="sublist">${subs.map(s => `<button class="fbtn" data-cat="${c}" data-sub="${esc(s)}" aria-pressed="${st.sub === s}"><span>${esc(s)}</span><span class="n">${base.filter(i => i.cat === c && i.sub === s).length}</span></button>`).join('')}</div>` : '');
   }).join('');
   const cbase = ITEMS.filter(it => match(it, 'color'));
-  document.getElementById('f-color').innerHTML = COLOR_GROUPS.filter(g => ITEMS.some(i => colorGroup(i.color) === g)).map(g => `<button class="chip" data-color="${esc(g.name)}" aria-pressed="${st.color === g.name}"><span class="sw" style="background:${g.sw}"></span>${esc(g.name)} <span class="n">${cbase.filter(i => colorGroup(i.color) === g).length}</span></button>`).join('');
+  document.getElementById('f-color').innerHTML = COLOR_GROUPS.filter(g => ITEMS.some(i => colorGroup(i.color) === g)).map(g => `<button class="chip" data-color="${esc(g.name)}" aria-pressed="${st.colors.includes(g.name)}"><span class="sw" style="background:${g.sw}"></span>${esc(g.name)} <span class="n">${cbase.filter(i => colorGroup(i.color) === g).length}</span></button>`).join('');
   const bbase = ITEMS.filter(it => match(it, 'brand'));
   document.getElementById('f-brand-list').innerHTML = BRANDS.map(b => { const n = bbase.filter(i => bgroup(i.brand) === b.k).length;
     return `<label data-k="${esc(b.k)}"${n ? '' : ' class="zero"'}><input type="checkbox" value="${esc(b.k)}" ${st.brands.includes(b.k) ? 'checked' : ''}><span>${esc(b.name)}</span><span class="n">${n}</span></label>`; }).join('');
@@ -92,12 +98,13 @@ function renderFilters() {
   seg('f-status', 'status', [['', 'Все'], ...statuses.map(x => [x, x[0].toUpperCase() + x.slice(1)])]);
   seg('f-fav', 'fav', [['', 'Все'], ['yes', '⭐ Любимые']]);
   seg('f-core', 'core', [['', 'Все'], ['yes', 'Актуальное'], ['no', 'Архив']]);
-  const facet = (id, key, label) => { const vals = [...new Set(ITEMS.map(i => i[key]).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ru')); const el = document.getElementById(id); el.innerHTML = `<option value="">${label}: все</option>` + vals.map(v => `<option value="${esc(v)}" ${st[key] === v ? 'selected' : ''}>${esc(v)}</option>`).join(''); el.onchange = (e) => { st[key] = e.target.value; render(); }; };
-  facet('f-length', 'length', 'Длина'); facet('f-sil', 'sil', 'Силуэт'); facet('f-sleeve', 'sleeve', 'Рукав'); facet('f-neck', 'neck', 'Вырез');
+  const on = { colors: st.colors.length, brands: brandsOn(), shop: st.shop };
+  document.querySelectorAll('.clr').forEach(b => b.classList.toggle('off', !on[b.dataset.clr]));
+  document.getElementById('reset').disabled = !anyOn();
   document.getElementById('q').value = st.q;
   document.getElementById('sort').value = st.sort;
   document.querySelectorAll('#f-cat .fbtn').forEach(b => b.onclick = () => { st.cat = b.dataset.cat || null; st.sub = b.dataset.sub || null; render(); });
-  document.querySelectorAll('#f-color .chip').forEach(b => b.onclick = () => { st.color = st.color === b.dataset.color ? null : b.dataset.color; render(); });
+  document.querySelectorAll('#f-color .chip').forEach(b => b.onclick = () => { const c = b.dataset.color; st.colors = st.colors.includes(c) ? st.colors.filter(x => x !== c) : [...st.colors, c]; render(); });
 }
 function filterBrandList() {
   const q = brandQ.trim().toLowerCase();
@@ -136,7 +143,8 @@ document.getElementById('f-brand-all').onclick = () => { const shown = [...docum
 document.getElementById('f-brand-none').onclick = () => { st.brands = []; render(); };
 document.getElementById('f-shop').onchange = (e) => { st.shop = e.target.value; render(); };
 document.getElementById('sort').onchange = (e) => { st.sort = e.target.value; render(); };
-document.getElementById('reset').onclick = () => { Object.assign(st, { cat: null, sub: null, color: null, brands: [], shop: '', q: '', photo: '', link: '', status: '', core: '', fav: '', length: '', sil: '', sleeve: '', neck: '' }); render(); };
+document.getElementById('reset').onclick = () => { Object.assign(st, structuredClone(CLEAR)); render(); };
+document.querySelectorAll('.clr').forEach(b => b.onclick = () => { st[b.dataset.clr] = structuredClone(CLEAR[b.dataset.clr]); render(); });
 const withPhoto = ITEMS.filter(i => i.photo).length;
 document.getElementById('stats').textContent = `${ITEMS.length} вещей · с фото ${withPhoto}` + (window.__WEB ? '' : ' · собрано из гардероб.md');
 render();

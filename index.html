@@ -48,11 +48,16 @@ button, input, select { font: inherit; color: inherit; }
 .chip .sw { width: 14px; height: 14px; border-radius: 50%; border: 1px solid #0000001a; }
 .chip[aria-pressed="true"] { border-color: var(--ink); }
 .toggle { display: flex; gap: 8px; align-items: center; font-size: 14px; cursor: pointer; }
-.facets { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.facets select { width: 100%; min-width: 0; font-size: 13px; padding: 6px 8px; }
 .seg { display: flex; flex-wrap: wrap; gap: 4px; }
 .seg button { padding: 4px 10px; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: var(--bg); cursor: pointer; font: inherit; font-size: 13px; color: var(--ink); }
 .seg button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.side-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.fhead { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 22px; }
+.clr { display: inline-grid; place-items: center; width: 24px; height: 22px; padding: 0; border: 0; border-radius: var(--radius-sm); background: none; color: var(--ink-muted); cursor: pointer; }
+.clr:hover { color: var(--accent); background: var(--pink-block); }
+.clr svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.clr.off { visibility: hidden; }
+.reset:disabled { color: var(--ink-muted); border-color: var(--line); cursor: default; }
 .reset { justify-self: start; padding: 4px 10px; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: var(--bg); cursor: pointer; font-size: 13px; }
 .bar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; margin-bottom: 12px; }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 20px 16px; }
@@ -134,22 +139,19 @@ dialog::backdrop { background: #211c1c66; }
   </header>
   <div class="layout">
     <aside class="side" aria-label="Фильтры">
+      <div class="side-top"><span class="cap">Фильтры</span><button class="reset" id="reset" type="button">Сбросить все</button></div>
       <div class="fgroup"><h3>Категория</h3><div id="f-cat"></div></div>
-      <div class="fgroup"><h3>Цвет</h3><div class="chips" id="f-color"></div></div>
-      <div class="fgroup"><h3>Бренд</h3><details class="ms" id="f-brand"><summary><span id="f-brand-sum">Все бренды</span></summary><div class="ms-body">
+      <div class="fgroup"><div class="fhead"><h3>Цвет</h3><button class="clr off" type="button" data-clr="colors" aria-label="Сбросить цвет" title="Сбросить цвет"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg></button></div><div class="chips" id="f-color"></div></div>
+      <div class="fgroup"><div class="fhead"><h3>Бренд</h3><button class="clr off" type="button" data-clr="brands" aria-label="Сбросить бренды" title="Сбросить бренды"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg></button></div><details class="ms" id="f-brand"><summary><span id="f-brand-sum">Все бренды</span></summary><div class="ms-body">
         <input type="search" class="search" id="f-brand-q" placeholder="Найти бренд" aria-label="Найти бренд">
         <div class="ms-act"><button type="button" id="f-brand-all">Выбрать все</button><button type="button" id="f-brand-none">Снять</button></div>
         <div class="ms-list" id="f-brand-list"></div></div></details></div>
-      <div class="fgroup"><h3>Где куплено</h3><select id="f-shop" class="search" style="width:100%"></select></div>
+      <div class="fgroup"><div class="fhead"><h3>Где куплено</h3><button class="clr off" type="button" data-clr="shop" aria-label="Сбросить магазин" title="Сбросить магазин"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg></button></div><select id="f-shop" class="search" style="width:100%"></select></div>
       <div class="fgroup"><h3>Фото</h3><div class="seg" id="f-photo"></div></div>
       <div class="fgroup"><h3>Ссылка</h3><div class="seg" id="f-link"></div></div>
       <div class="fgroup"><h3>Актуальное</h3><div class="seg" id="f-core"></div></div>
       <div class="fgroup"><h3>Статус</h3><div class="seg" id="f-status"></div></div>
       <div class="fgroup"><h3>Любимое</h3><div class="seg" id="f-fav"></div></div>
-      <div class="fgroup"><h3>Фасон</h3><div class="facets">
-        <select id="f-length" class="search" aria-label="Длина"></select><select id="f-sil" class="search" aria-label="Силуэт"></select>
-        <select id="f-sleeve" class="search" aria-label="Рукав"></select><select id="f-neck" class="search" aria-label="Вырез"></select></div></div>
-      <button class="reset" id="reset" type="button">Сбросить фильтры</button>
     </aside>
     <section>
       <div class="bar"><button class="ftoggle" id="ftoggle" type="button" aria-expanded="false">Фильтры</button><span class="cap" id="count"></span>
@@ -164,7 +166,7 @@ dialog::backdrop { background: #211c1c66; }
   </div>
 </main>
 <dialog id="dlg"></dialog>
-<script>window.__BUILD = 'a8ff9a27';</script>
-<script src="app.js?v=a8ff9a27"></script>
+<script>window.__BUILD = 'f32d3e39';</script>
+<script src="app.js?v=f32d3e39"></script>
 </body>
 </html>
