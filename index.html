@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Мой гардероб</title>
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="Гардероб">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;600&family=Tenor+Sans&display=swap">
+<style>
+/* Личная система, светлая тема. Раскладка: шапка → слева фильтры, справа сетка карточек как в магазине → карточка вещи во всплывающем окне. */
+:root {
+  color-scheme: light;
+  --bg: #ffffff; --surface: #fbfaf8; --line: #e8e6e6; --line-strong: #d3cfcf;
+  --ink: #211c1c; --ink-muted: #6b6b6b; --accent: #e0679a; --pink: #ffe5eb; --pink-block: #fff2f5;
+  --sky: #d9f5ff; --lemon: #fef7c9; --photo: #f4f3f1;
+  --font-display: "Tenor Sans", "Golos Text", system-ui, sans-serif;
+  --font-body: "Golos Text", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --radius-sm: 4px; --radius-md: 6px;
+  --shadow-soft: 0 10px 30px #211c1c14, 0 1px 2px #211c1c0d;
+  --focus-ring: 0 0 0 2px #ffffff, 0 0 0 4px #211c1c;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); }
+body { font-family: var(--font-body); font-size: 15px; line-height: 22px; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.page { padding: 32px; display: grid; gap: 24px; }
+.head { display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: end; justify-content: space-between; }
+.title { font-family: var(--font-display); font-weight: 400; font-size: 34px; line-height: 40px; margin: 0; }
+.wave { display: block; width: 190px; height: 8px; margin-top: 2px; }
+.wave path { fill: none; stroke: var(--accent); stroke-width: 1.4; }
+.cap { font-size: 12.5px; line-height: 16px; color: var(--ink-muted); }
+.search { width: 320px; max-width: 100%; padding: 8px 12px; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: var(--bg); }
+.layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 32px; align-items: start; }
+@media (max-width: 760px) { .layout { grid-template-columns: minmax(0, 1fr); } .page { padding: 16px; } }
+.side { position: sticky; top: 16px; display: grid; gap: 20px; }
+.fgroup { display: grid; gap: 6px; }
+.fgroup h3 { margin: 0; font-size: 12.5px; font-weight: 400; color: var(--ink-muted); text-transform: none; }
+.fbtn { display: flex; justify-content: space-between; gap: 8px; width: 100%; text-align: left; padding: 4px 8px; border: 0; border-radius: var(--radius-sm); background: none; cursor: pointer; font-size: 14px; }
+.fbtn:hover { background: var(--surface); }
+.fbtn[aria-pressed="true"] { background: var(--pink); }
+.fbtn .n, .chip .n { color: var(--ink-muted); font-variant-numeric: tabular-nums; }
+.sublist { display: grid; gap: 2px; padding-left: 12px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px 2px 4px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--bg); cursor: pointer; font-size: 12.5px; line-height: 20px; }
+.chip .sw { width: 14px; height: 14px; border-radius: 50%; border: 1px solid #0000001a; }
+.chip[aria-pressed="true"] { border-color: var(--ink); }
+.toggle { display: flex; gap: 8px; align-items: center; font-size: 14px; cursor: pointer; }
+.facets { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.facets select { width: 100%; min-width: 0; font-size: 13px; padding: 6px 8px; }
+.seg { display: flex; flex-wrap: wrap; gap: 4px; }
+.seg button { padding: 4px 10px; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: var(--bg); cursor: pointer; font: inherit; font-size: 13px; color: var(--ink); }
+.seg button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.reset { justify-self: start; padding: 4px 10px; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: var(--bg); cursor: pointer; font-size: 13px; }
+.bar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 20px 16px; }
+.card { display: grid; gap: 8px; align-content: start; cursor: pointer; border: 0; padding: 0; background: none; text-align: left; }
+.ph { position: relative; aspect-ratio: 3 / 4; border-radius: var(--radius-md); overflow: hidden; background: var(--photo); display: grid; place-items: center; }
+.ph img { width: 100%; height: 100%; display: block; }
+.ph img.own { object-fit: contain; padding: 8%; }
+.ph img.store { object-fit: cover; }
+.ph img.studio { object-fit: contain; background: #fff; }
+.ph .ph-empty { display: grid; place-items: center; gap: 8px; color: var(--ink-muted); font-size: 12.5px; text-align: center; padding: 12px; }
+.ph .dot { width: 48px; height: 48px; border-radius: 50%; border: 1px solid #0000001a; }
+.badges { position: absolute; left: 8px; top: 8px; display: flex; gap: 4px; flex-wrap: wrap; }
+.badge { font-size: 11.5px; line-height: 18px; padding: 0 6px; border-radius: var(--radius-sm); background: #ffffffe6; }
+.badge.transit { background: var(--lemon); }
+.card:hover .ph { box-shadow: inset 0 0 0 1px var(--line-strong); }
+.cname { font-size: 14px; line-height: 19px; }
+.cmeta { font-size: 12.5px; line-height: 16px; color: var(--ink-muted); }
+.cno { font-weight: 600; color: var(--ink); }
+.empty { padding: 48px 0; color: var(--ink-muted); text-align: center; }
+dialog { border: 0; border-radius: var(--radius-md); padding: 0; max-width: min(880px, 94vw); width: 100%; box-shadow: var(--shadow-soft); }
+dialog::backdrop { background: #211c1c66; }
+.dlg { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+@media (max-width: 700px) { .dlg { grid-template-columns: minmax(0, 1fr); } }
+.dlg .ph { aspect-ratio: auto; min-height: 420px; border-radius: 0; }
+.dlg-body { padding: 24px; display: grid; gap: 14px; align-content: start; }
+.dlg-body h2 { font-family: var(--font-display); font-weight: 400; font-size: 22px; line-height: 28px; margin: 0; }
+.props { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 16px; font-size: 14px; margin: 0; }
+.props dt { color: var(--ink-muted); }
+.props dd { margin: 0; }
+.notes { font-size: 14px; line-height: 20px; background: var(--surface); border-radius: var(--radius-md); padding: 12px; }
+.links { display: flex; flex-wrap: wrap; gap: 8px; }
+.links a { padding: 6px 12px; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); text-decoration: none; color: var(--ink); font-size: 14px; }
+.ms summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; gap: 8px; padding: 8px 12px; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: var(--bg); font-size: 14px; }
+.ms summary::-webkit-details-marker { display: none; }
+.ms summary::after { content: '▾'; color: var(--ink-muted); }
+.ms[open] summary::after { content: '▴'; }
+.ms summary span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ms-body { display: grid; gap: 6px; margin-top: 6px; }
+.ms-body .search { width: 100%; font-size: 13px; padding: 6px 8px; }
+.ms-act { display: flex; gap: 6px; }
+.ms-act button { padding: 3px 8px; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: var(--bg); cursor: pointer; font-size: 12.5px; }
+.ms-list { max-height: 260px; overflow: auto; display: grid; gap: 1px; border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 4px; }
+.ms-list label { display: flex; gap: 8px; align-items: center; padding: 3px 6px; border-radius: var(--radius-sm); cursor: pointer; font-size: 14px; }
+.ms-list label:hover { background: var(--surface); }
+.ms-list label[hidden] { display: none; }
+.ms-list input { accent-color: var(--accent); margin: 0; }
+.ms-list .n { margin-left: auto; color: var(--ink-muted); font-variant-numeric: tabular-nums; }
+.ms-list .zero { color: var(--ink-muted); }
+.close { position: absolute; right: 12px; top: 12px; width: 32px; height: 32px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--bg); cursor: pointer; }
+
+[hidden] { display: none !important; }
+.gate { max-width: 420px; margin: 0 auto; padding: 64px 16px; display: grid; gap: 16px; }
+.gate-form { display: grid; gap: 10px; }
+.gate-form p { margin: 0; }
+.gate-form .search { width: 100%; }
+.gate-err { color: #d4433a; font-size: 13px; }
+.gate-btn { justify-self: start; padding: 8px 18px; border: 0; border-radius: var(--radius-sm); background: var(--accent); color: #fff; font-weight: 600; cursor: pointer; }
+</style>
+</head>
+<body>
+<section class="gate" id="gate"></section>
+<main class="page" hidden>
+  <header class="head">
+    <div>
+      <h1 class="title">Мой гардероб</h1>
+      <svg class="wave" viewBox="0 0 190 8" aria-hidden="true"><path d="M1 4 Q 6 0 11 4 T 21 4 T 31 4 T 41 4 T 51 4 T 61 4 T 71 4 T 81 4 T 91 4 T 101 4 T 111 4 T 121 4 T 131 4 T 141 4 T 151 4 T 161 4 T 171 4 T 181 4"/></svg>
+      <div class="cap" id="stats"></div>
+    </div>
+    <input class="search" id="q" type="search" placeholder="Поиск: «юбка розовая», «Села», «лиоцелл», номер вещи…" aria-label="Поиск">
+  </header>
+  <div class="layout">
+    <aside class="side" aria-label="Фильтры">
+      <div class="fgroup"><h3>Категория</h3><div id="f-cat"></div></div>
+      <div class="fgroup"><h3>Цвет</h3><div class="chips" id="f-color"></div></div>
+      <div class="fgroup"><h3>Бренд</h3><details class="ms" id="f-brand"><summary><span id="f-brand-sum">Все бренды</span></summary><div class="ms-body">
+        <input type="search" class="search" id="f-brand-q" placeholder="Найти бренд" aria-label="Найти бренд">
+        <div class="ms-act"><button type="button" id="f-brand-all">Выбрать все</button><button type="button" id="f-brand-none">Снять</button></div>
+        <div class="ms-list" id="f-brand-list"></div></div></details></div>
+      <div class="fgroup"><h3>Где куплено</h3><select id="f-shop" class="search" style="width:100%"></select></div>
+      <div class="fgroup"><h3>Фото</h3><div class="seg" id="f-photo"></div></div>
+      <div class="fgroup"><h3>Ссылка</h3><div class="seg" id="f-link"></div></div>
+      <div class="fgroup"><h3>Статус</h3><div class="seg" id="f-status"></div></div>
+      <div class="fgroup"><h3>Любимое</h3><div class="seg" id="f-fav"></div></div>
+      <div class="fgroup"><h3>Фасон</h3><div class="facets">
+        <select id="f-length" class="search" aria-label="Длина"></select><select id="f-sil" class="search" aria-label="Силуэт"></select>
+        <select id="f-sleeve" class="search" aria-label="Рукав"></select><select id="f-neck" class="search" aria-label="Вырез"></select></div></div>
+      <button class="reset" id="reset" type="button">Сбросить фильтры</button>
+    </aside>
+    <section>
+      <div class="bar"><span class="cap" id="count"></span>
+        <select id="sort" class="search" style="width:auto" aria-label="Сортировка">
+          <option value="no">По номеру</option>
+          <option value="new">Сначала новые</option>
+          <option value="name">По названию</option>
+        </select>
+      </div>
+      <div class="grid" id="grid"></div>
+    </section>
+  </div>
+</main>
+<dialog id="dlg"></dialog>
+<script>window.__BUILD = '1cdcb8ed';</script>
+<script src="app.js?v=1cdcb8ed"></script>
+</body>
+</html>
