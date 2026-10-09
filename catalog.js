@@ -180,7 +180,5 @@ document.getElementById('f-shop').onchange = (e) => { st.shop = e.target.value; 
 document.getElementById('sort').onchange = (e) => { st.sort = e.target.value; render(); };
 document.getElementById('reset').onclick = () => { Object.assign(st, structuredClone(CLEAR)); render(); };
 document.querySelectorAll('.clr').forEach(b => b.onclick = () => { st[b.dataset.clr] = structuredClone(CLEAR[b.dataset.clr]); render(); });
-const withPhoto = ITEMS.filter(i => i.photo).length;
-document.getElementById('stats').textContent = `${ITEMS.length} вещей · с фото ${withPhoto}` + (window.__WEB ? '' : ' · собрано из гардероб.md');
 buildTree();
 render();
