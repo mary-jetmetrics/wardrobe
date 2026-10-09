@@ -10,7 +10,9 @@ const LS = {
   set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* без хранилища — войдёт заново */ } },
   del(k) { try { localStorage.removeItem(k); } catch (e) { /* нечего удалять */ } },
 };
-let TOKEN = LS.get('wardrobe-token');
+// Ключ «Поездок» (тот же адрес mary-jetmetrics.github.io) подходит, если ему дан доступ к wardrobe-data — тогда входить не нужно
+let TOKEN = LS.get('wardrobe-token') || LS.get('trips-token');
+let OWN = !!LS.get('wardrobe-token');
 window.__WEB = true;
 const gate = document.getElementById('gate');
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -67,7 +69,7 @@ function showGate(msg) {
   document.getElementById('login').addEventListener('submit', e => {
     e.preventDefault();
     const v = document.getElementById('tok').value.trim(); if (!v) return;
-    TOKEN = v; LS.set('wardrobe-token', v); boot();
+    TOKEN = v; OWN = true; LS.set('wardrobe-token', v); boot();
   });
 }
 async function boot() {
@@ -76,7 +78,10 @@ async function boot() {
   try {
     window.__ITEMS = await (await raw('items.json')).json();
   } catch (e) {
-    if ([401, 403, 404].includes(e.status)) { LS.del('wardrobe-token'); TOKEN = null; return showGate('Ключ не подошёл. Проверь, что у него есть доступ к репозиторию wardrobe-data и он не просрочен.'); }
+    if ([401, 403, 404].includes(e.status)) {
+      if (OWN) { LS.del('wardrobe-token'); TOKEN = null; return showGate('Ключ не подошёл. Проверь, что у него есть доступ к репозиторию wardrobe-data и он не просрочен.'); }
+      TOKEN = null; return showGate(); // ключ «Поездок» без доступа к гардеробу — его не трогаем
+    }
     gate.innerHTML = `<p class="cap">Не получилось загрузить гардероб: ${esc(e.message)}. Проверь интернет и обнови страницу.</p>`; return;
   }
   gate.remove();
