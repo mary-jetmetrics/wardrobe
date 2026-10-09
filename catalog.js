@@ -122,6 +122,7 @@ function openItem(no) {
   if (window.__loadPhotos) window.__loadPhotos(d);
 }
 document.getElementById('q').oninput = (e) => { st.q = e.target.value; render(); };
+document.getElementById('ftoggle').onclick = (e) => { const open = document.body.classList.toggle('fopen'); e.currentTarget.setAttribute('aria-expanded', String(open)); };
 document.getElementById('f-brand-q').oninput = (e) => { brandQ = e.target.value; filterBrandList(); };
 document.getElementById('f-brand-all').onclick = () => { const shown = [...document.querySelectorAll('#f-brand-list label:not([hidden])')].map(l => l.dataset.k); st.brands = [...new Set([...st.brands, ...shown])]; render(); };
 document.getElementById('f-brand-none').onclick = () => { st.brands = []; render(); };

@@ -35,7 +35,15 @@ button, input, select { font: inherit; color: inherit; }
 .cap { font-size: 12.5px; line-height: 16px; color: var(--ink-muted); }
 .search { width: 320px; max-width: 100%; padding: 8px 12px; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: var(--bg); }
 .layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 32px; align-items: start; }
-@media (max-width: 760px) { .layout { grid-template-columns: minmax(0, 1fr); } .page { padding: 16px; } }
+.ftoggle { display: none; }
+@media (max-width: 760px) {
+  .layout { grid-template-columns: minmax(0, 1fr); gap: 16px; } .page { padding: 16px; gap: 16px; }
+  .side { position: static; display: none; } body.fopen .side { display: grid; }
+  .ftoggle { display: inline-flex; gap: 6px; align-items: center; padding: 6px 12px; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: var(--bg); cursor: pointer; font-size: 14px; }
+  body.fopen .ftoggle { background: var(--pink); border-color: var(--pink); }
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 12px; }
+  .search#q { width: 100%; }
+}
 .side { position: sticky; top: 16px; display: grid; gap: 20px; }
 .fgroup { display: grid; gap: 6px; }
 .fgroup h3 { margin: 0; font-size: 12.5px; font-weight: 400; color: var(--ink-muted); text-transform: none; }
@@ -143,7 +151,7 @@ dialog::backdrop { background: #211c1c66; }
       <button class="reset" id="reset" type="button">Сбросить фильтры</button>
     </aside>
     <section>
-      <div class="bar"><span class="cap" id="count"></span>
+      <div class="bar"><button class="ftoggle" id="ftoggle" type="button" aria-expanded="false">Фильтры</button><span class="cap" id="count"></span>
         <select id="sort" class="search" style="width:auto" aria-label="Сортировка">
           <option value="no">По номеру</option>
           <option value="new">Сначала новые</option>
@@ -155,7 +163,7 @@ dialog::backdrop { background: #211c1c66; }
   </div>
 </main>
 <dialog id="dlg"></dialog>
-<script>window.__BUILD = '9f42a32a';</script>
-<script src="app.js?v=9f42a32a"></script>
+<script>window.__BUILD = '603a1cf0';</script>
+<script src="app.js?v=603a1cf0"></script>
 </body>
 </html>
