@@ -20,7 +20,7 @@ const colorGroup = (c) => COLOR_GROUPS.find(g => g.colors.some(x => (c || '').st
 const swatch = (c) => { const k = Object.keys(SW).sort((a, b) => b.length - a.length).find(x => (c || '').startsWith(x)); return k ? SW[k] : '#e6e4e2'; };
 const esc = (s) => String(s || '').replace(/[&<>"]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m]));
 const md = (s) => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/`(.+?)`/g, '$1').replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
-const st = { cat: null, sub: null, color: null, brands: [], shop: '', q: '', photo: '', link: '', status: '', fav: '', length: '', sil: '', sleeve: '', neck: '', sort: 'no' };
+const st = { cat: null, sub: null, color: null, brands: [], shop: '', q: '', photo: '', link: '', status: '', core: '', fav: '', length: '', sil: '', sleeve: '', neck: '', sort: 'no' };
 try { Object.assign(st, JSON.parse(localStorage.getItem('wardrobe-filters') || '{}')); } catch (e) {}
 if (typeof st.photo !== 'string') st.photo = st.photo ? 'yes' : '';
 if ('brand' in st) { if (st.brand) st.brands = [String(st.brand).toLowerCase()]; delete st.brand; }
@@ -47,6 +47,8 @@ function match(it, skip) {
   if (st.link === 'yes' && !it.links.length) return false;
   if (st.link === 'no' && it.links.length) return false;
   if (st.status && it.status !== st.status) return false;
+  if (st.core === 'yes' && !it.core) return false;
+  if (st.core === 'no' && it.core) return false;
   if (st.fav === 'yes' && !it.fav) return false;
   for (const f of ['length', 'sil', 'sleeve', 'neck']) if (st[f] && it[f] !== st[f]) return false;
   if (st.q) { const hay = (it.name + ' ' + it.brand + ' ' + it.color + ' ' + it.fabric + ' ' + it.sub + ' ' + it.kind + ' ' + it.notes + ' #' + it.no).toLowerCase(); if (!st.q.toLowerCase().split(/\s+/).every(w => hay.includes(w))) return false; }
@@ -84,6 +86,7 @@ function renderFilters() {
   const statuses = [...new Set(ITEMS.map(i => i.status))].sort((a, b) => a === 'дома' ? -1 : b === 'дома' ? 1 : a.localeCompare(b, 'ru'));
   seg('f-status', 'status', [['', 'Все'], ...statuses.map(x => [x, x[0].toUpperCase() + x.slice(1)])]);
   seg('f-fav', 'fav', [['', 'Все'], ['yes', '⭐ Любимые']]);
+  seg('f-core', 'core', [['', 'Все'], ['yes', 'Актуальное'], ['no', 'Архив']]);
   const facet = (id, key, label) => { const vals = [...new Set(ITEMS.map(i => i[key]).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ru')); const el = document.getElementById(id); el.innerHTML = `<option value="">${label}: все</option>` + vals.map(v => `<option value="${esc(v)}" ${st[key] === v ? 'selected' : ''}>${esc(v)}</option>`).join(''); el.onchange = (e) => { st[key] = e.target.value; render(); }; };
   facet('f-length', 'length', 'Длина'); facet('f-sil', 'sil', 'Силуэт'); facet('f-sleeve', 'sleeve', 'Рукав'); facet('f-neck', 'neck', 'Вырез');
   document.getElementById('q').value = st.q;
@@ -102,7 +105,7 @@ function render() {
   if (st.sort === 'name') list = list.slice().sort((a, b) => a.name.localeCompare(b.name, 'ru'));
   document.getElementById('count').textContent = `Показано ${list.length} из ${ITEMS.length}`;
   document.getElementById('grid').innerHTML = list.length ? list.map(it => `<button class="card" data-no="${it.no}">
-      <div class="ph">${photoHTML(it)}<div class="badges">${it.fav ? '<span class="badge">⭐</span>' : ''}${it.status !== 'дома' ? `<span class="badge transit">${esc(it.status)}</span>` : ''}${it.photoKind === 'store' ? '<span class="badge">фото магазина</span>' : ''}</div></div>
+      <div class="ph">${photoHTML(it)}<div class="badges">${it.fav ? '<span class="badge">⭐</span>' : ''}${it.status !== 'дома' ? `<span class="badge transit">${esc(it.status)}</span>` : ''}${!it.core ? '<span class="badge">архив</span>' : ''}${it.photoKind === 'store' ? '<span class="badge">фото магазина</span>' : ''}</div></div>
       <div class="cname">${esc(it.name)}</div><div class="cmeta"><b class="cno">${it.no}</b> · ${[it.brand, it.color].filter(Boolean).map(esc).join(' · ')}</div></button>`).join('') : '<div class="empty">Ничего не нашлось — попробуй сбросить фильтры</div>';
   document.querySelectorAll('.card').forEach(c => c.onclick = () => openItem(+c.dataset.no));
   if (window.__loadPhotos) window.__loadPhotos(document.getElementById('grid'));
@@ -112,7 +115,7 @@ function openItem(no) {
   const row = (k, v) => v ? `<dt>${k}</dt><dd>${md(v)}</dd>` : '';
   d.innerHTML = `<div class="dlg" style="position:relative"><div class="ph">${photoHTML(it, true)}</div>
     <div class="dlg-body"><div class="cap">${it.no} · ${esc([it.cat, it.sub, it.kind].filter(Boolean).join(' / '))}</div><h2>${esc(it.name)}</h2>
-    <dl class="props">${row('Бренд', it.brand)}${row('Статус', it.status !== 'дома' ? it.status : '')}${row('Уход', it.care)}${row('Фасон', [it.length, it.sil, it.sleeve && (it.sleeve === 'без рукава' ? it.sleeve : 'рукав ' + it.sleeve), it.neck].filter(Boolean).join(', '))}${row('Размер', it.size)}${row('Цена', it.price ? it.price + ' ₽' : '')}${row('Вес и объём', [it.weight && it.weight + ' г', it.volume && it.volume + ' л'].filter(Boolean).join(', '))}${row('Где куплено', it.shop)}${row('Цвет', it.color)}${row('Состав', it.fabric)}${row('Куплено', it.year)}${row('Фото', it.photoKind === 'studio' ? 'студийное, Codex по фото' : it.photoKind === 'own' ? 'своё' : it.photoKind === 'store' ? 'с сайта магазина' : '')}</dl>
+    <dl class="props">${row('Бренд', it.brand)}${row('Статус', it.status !== 'дома' ? it.status : '')}${row('Актуальное', it.core ? '' : 'нет, в архиве')}${row('Уход', it.care)}${row('Фасон', [it.length, it.sil, it.sleeve && (it.sleeve === 'без рукава' ? it.sleeve : 'рукав ' + it.sleeve), it.neck].filter(Boolean).join(', '))}${row('Размер', it.size)}${row('Цена', it.price ? it.price + ' ₽' : '')}${row('Вес и объём', [it.weight && it.weight + ' г', it.volume && it.volume + ' л'].filter(Boolean).join(', '))}${row('Где куплено', it.shop)}${row('Цвет', it.color)}${row('Состав', it.fabric)}${row('Куплено', it.year)}${row('Фото', it.photoKind === 'studio' ? 'студийное, Codex по фото' : it.photoKind === 'own' ? 'своё' : it.photoKind === 'store' ? 'с сайта магазина' : '')}</dl>
     ${it.notes ? `<div class="notes">${md(it.notes)}</div>` : ''}
     ${it.links.length ? `<div class="links">${it.links.map(l => `<a href="${esc(l.u)}" target="_blank" rel="noopener">${esc(l.t)} ↗</a>`).join('')}</div>` : ''}
     </div><button class="close" type="button" aria-label="Закрыть">✕</button></div>`;
@@ -128,7 +131,7 @@ document.getElementById('f-brand-all').onclick = () => { const shown = [...docum
 document.getElementById('f-brand-none').onclick = () => { st.brands = []; render(); };
 document.getElementById('f-shop').onchange = (e) => { st.shop = e.target.value; render(); };
 document.getElementById('sort').onchange = (e) => { st.sort = e.target.value; render(); };
-document.getElementById('reset').onclick = () => { Object.assign(st, { cat: null, sub: null, color: null, brands: [], shop: '', q: '', photo: '', link: '', status: '', fav: '', length: '', sil: '', sleeve: '', neck: '' }); render(); };
+document.getElementById('reset').onclick = () => { Object.assign(st, { cat: null, sub: null, color: null, brands: [], shop: '', q: '', photo: '', link: '', status: '', core: '', fav: '', length: '', sil: '', sleeve: '', neck: '' }); render(); };
 const withPhoto = ITEMS.filter(i => i.photo).length;
 document.getElementById('stats').textContent = `${ITEMS.length} вещей · с фото ${withPhoto}` + (window.__WEB ? '' : ' · собрано из гардероб.md');
 render();
