@@ -20,7 +20,7 @@ const colorGroup = (c) => COLOR_GROUPS.find(g => g.colors.some(x => (c || '').st
 const swatch = (c) => { const k = Object.keys(SW).sort((a, b) => b.length - a.length).find(x => (c || '').startsWith(x)); return k ? SW[k] : '#e6e4e2'; };
 const esc = (s) => String(s || '').replace(/[&<>"]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m]));
 const md = (s) => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/`(.+?)`/g, '$1').replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
-const st = { cat: null, sub: null, colors: [], brands: [], shop: '', q: '', photo: '', link: '', status: '', core: '', fav: '', sort: 'no' };
+const st = { cat: null, sub: null, kind: null, colors: [], brands: [], shop: '', q: '', photo: '', link: '', status: '', core: '', fav: '', sort: 'no' };
 try { Object.assign(st, JSON.parse(localStorage.getItem('wardrobe-filters') || '{}')); } catch (e) {}
 if (typeof st.photo !== 'string') st.photo = st.photo ? 'yes' : '';
 if ('brand' in st) { if (st.brand) st.brands = [String(st.brand).toLowerCase()]; delete st.brand; }
@@ -41,9 +41,19 @@ if (st.color) st.colors = [st.color];
 if (!Array.isArray(st.colors)) st.colors = [];
 st.colors = st.colors.filter(c => COLOR_GROUPS.some(g => g.name === c));
 for (const k of ['color', 'length', 'sil', 'sleeve', 'neck']) delete st[k];
-const CLEAR = { cat: null, sub: null, colors: [], brands: [], shop: '', q: '', photo: '', link: '', status: '', core: '', fav: '' };
+const CLEAR = { cat: null, sub: null, kind: null, colors: [], brands: [], shop: '', q: '', photo: '', link: '', status: '', core: '', fav: '' };
 const brandsOn = () => st.brands.length && st.brands.length < BRANDS.length;
 const anyOn = () => !!(st.cat || st.colors.length || brandsOn() || st.shop || st.q || st.photo || st.link || st.status || st.core || st.fav);
+// Категории деревом (вариант А, выбрала Мария 09.10.26): категория → подкатегория → тип; тип — если у подкатегории их хотя бы два.
+// Дерево строится один раз, дальше меняются только отметки, числа и раскрытие — так ветки раскрываются плавно и ничего не скачет.
+const TREE = CAT_ORDER.filter(c => ITEMS.some(i => i.cat === c)).map(c => ({ name: c, subs: [...new Set(ITEMS.filter(i => i.cat === c).map(i => i.sub).filter(Boolean))].map(s => {
+  const kinds = [...new Set(ITEMS.filter(i => i.cat === c && i.sub === s).map(i => i.kind).filter(k => k && k !== '—'))];
+  return { name: s, kinds: kinds.length >= 2 ? kinds : [] }; }) }));
+if (st.kind === undefined) st.kind = null;
+{ const t = TREE.find(x => x.name === st.cat), u = t && t.subs.find(x => x.name === st.sub);
+  if (!t) Object.assign(st, { cat: null, sub: null, kind: null }); else if (st.sub && !u) Object.assign(st, { sub: null, kind: null }); else if (st.kind && !(u && u.kinds.includes(st.kind))) st.kind = null; }
+const treeOpen = new Set();
+if (st.cat) { treeOpen.add(st.cat); if (st.sub && TREE.find(t => t.name === st.cat).subs.find(x => x.name === st.sub).kinds.length) treeOpen.add(st.cat + '|' + st.sub); }
 const save = () => { try { localStorage.setItem('wardrobe-filters', JSON.stringify(st)); } catch (e) {} };
 
 function match(it, skip) {
@@ -51,6 +61,7 @@ function match(it, skip) {
   if (qn) return it.no === +qn[1];
   if (skip !== 'cat' && st.cat && it.cat !== st.cat) return false;
   if (skip !== 'cat' && st.sub && it.sub !== st.sub) return false;
+  if (skip !== 'cat' && st.kind && it.kind !== st.kind) return false;
   if (skip !== 'color' && st.colors.length && !st.colors.includes(colorGroup(it.color)?.name)) return false;
   if (skip !== 'brand' && st.brands.length && st.brands.length < BRANDS.length && !st.brands.includes(bgroup(it.brand))) return false;
   if (st.shop && !(it.shop || '').split(', ').includes(st.shop)) return false;
@@ -74,12 +85,7 @@ function photoHTML(it, big) {
 }
 function renderFilters() {
   const base = ITEMS.filter(it => match(it, 'cat'));
-  const cats = CAT_ORDER.filter(c => ITEMS.some(i => i.cat === c));
-  document.getElementById('f-cat').innerHTML = `<button class="fbtn" data-cat="" aria-pressed="${!st.cat}"><span>Все</span><span class="n">${base.length}</span></button>` + cats.map(c => {
-    const n = base.filter(i => i.cat === c).length;
-    const subs = st.cat === c ? [...new Set(ITEMS.filter(i => i.cat === c).map(i => i.sub).filter(Boolean))] : [];
-    return `<button class="fbtn" data-cat="${c}" aria-pressed="${st.cat === c && !st.sub}"><span>${c}</span><span class="n">${n}</span></button>` + (subs.length ? `<div class="sublist">${subs.map(s => `<button class="fbtn" data-cat="${c}" data-sub="${esc(s)}" aria-pressed="${st.sub === s}"><span>${esc(s)}</span><span class="n">${base.filter(i => i.cat === c && i.sub === s).length}</span></button>`).join('')}</div>` : '');
-  }).join('');
+  syncTree(base);
   const cbase = ITEMS.filter(it => match(it, 'color'));
   document.getElementById('f-color').innerHTML = COLOR_GROUPS.filter(g => ITEMS.some(i => colorGroup(i.color) === g)).map(g => `<button class="chip" data-color="${esc(g.name)}" aria-pressed="${st.colors.includes(g.name)}"><span class="sw" style="background:${g.sw}"></span>${esc(g.name)} <span class="n">${cbase.filter(i => colorGroup(i.color) === g).length}</span></button>`).join('');
   const bbase = ITEMS.filter(it => match(it, 'brand'));
@@ -103,8 +109,37 @@ function renderFilters() {
   document.getElementById('reset').disabled = !anyOn();
   document.getElementById('q').value = st.q;
   document.getElementById('sort').value = st.sort;
-  document.querySelectorAll('#f-cat .fbtn').forEach(b => b.onclick = () => { st.cat = b.dataset.cat || null; st.sub = b.dataset.sub || null; render(); });
   document.querySelectorAll('#f-color .chip').forEach(b => b.onclick = () => { const c = b.dataset.color; st.colors = st.colors.includes(c) ? st.colors.filter(x => x !== c) : [...st.colors, c]; render(); });
+}
+function buildTree() {
+  const CHEV = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M4 2l4 4-4 4"/></svg>';
+  const tw = (key, name) => `<button class="tw" type="button" data-t="${esc(key)}" aria-label="Раскрыть: ${esc(name)}">${CHEV}</button>`;
+  const lbl = (p, name, cls = '') => `<button class="lbl${cls}" type="button" data-p="${esc(p)}"><span>${esc(name)}</span><span class="n"></span></button>`;
+  const kids = (key, inner) => `<div class="kids" data-k="${esc(key)}"><div><div class="kids-in">${inner}</div></div></div>`;
+  const el = document.getElementById('f-cat');
+  el.innerHTML = `<div class="tree"><div class="trow"><span></span>${lbl('', 'Все')}</div>` + TREE.map(c => `<div class="trow">${tw(c.name, c.name)}${lbl(c.name, c.name)}</div>` +
+    kids(c.name, c.subs.map(u => { const key = c.name + '|' + u.name;
+      return `<div class="trow">${u.kinds.length ? tw(key, u.name) : '<span></span>'}${lbl(key, u.name, ' sub')}</div>` +
+        (u.kinds.length ? kids(key, u.kinds.map(k => `<div class="trow"><span></span>${lbl(key + '|' + k, k, ' kind')}</div>`).join('')) : ''); }).join(''))).join('') + '</div>';
+  el.querySelectorAll('.lbl').forEach(b => b.onclick = () => {
+    const [c = null, u = null, k = null] = b.dataset.p ? b.dataset.p.split('|') : [];
+    if (c && !u) { treeOpen.clear(); treeOpen.add(c); }
+    if (c && u && !k) { treeOpen.add(c); [...treeOpen].forEach(x => { if (x.includes('|') && x !== c + '|' + u) treeOpen.delete(x); });
+      if (TREE.find(t => t.name === c).subs.find(x => x.name === u).kinds.length) treeOpen.add(c + '|' + u); }
+    Object.assign(st, { cat: c, sub: u, kind: k }); render();
+    // список вещей стал короче — вернуть к его началу, если ушла ниже
+    const top = document.querySelector('section .bar').getBoundingClientRect().top + window.scrollY - 12;
+    if (window.scrollY > top) window.scrollTo({ top, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  });
+  el.querySelectorAll('.tw').forEach(b => b.onclick = () => { const t = b.dataset.t; treeOpen.has(t) ? treeOpen.delete(t) : treeOpen.add(t); syncTree(ITEMS.filter(it => match(it, 'cat'))); });
+}
+function syncTree(base) {
+  const el = document.getElementById('f-cat');
+  el.querySelectorAll('.lbl').forEach(b => { const [c = null, u = null, k = null] = b.dataset.p ? b.dataset.p.split('|') : [];
+    b.setAttribute('aria-pressed', String(st.cat === c && st.sub === u && st.kind === k));
+    b.querySelector('.n').textContent = base.filter(i => (!c || i.cat === c) && (!u || i.sub === u) && (!k || i.kind === k)).length; });
+  el.querySelectorAll('.kids').forEach(k => k.classList.toggle('open', treeOpen.has(k.dataset.k)));
+  el.querySelectorAll('.tw').forEach(b => b.setAttribute('aria-expanded', String(treeOpen.has(b.dataset.t))));
 }
 function filterBrandList() {
   const q = brandQ.trim().toLowerCase();
@@ -147,4 +182,5 @@ document.getElementById('reset').onclick = () => { Object.assign(st, structuredC
 document.querySelectorAll('.clr').forEach(b => b.onclick = () => { st[b.dataset.clr] = structuredClone(CLEAR[b.dataset.clr]); render(); });
 const withPhoto = ITEMS.filter(i => i.photo).length;
 document.getElementById('stats').textContent = `${ITEMS.length} вещей · с фото ${withPhoto}` + (window.__WEB ? '' : ' · собрано из гардероб.md');
+buildTree();
 render();
