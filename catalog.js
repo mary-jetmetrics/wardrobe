@@ -26,9 +26,14 @@ if (typeof st.photo !== 'string') st.photo = st.photo ? 'yes' : '';
 if ('brand' in st) { if (st.brand) st.brands = [String(st.brand).toLowerCase()]; delete st.brand; }
 if (!Array.isArray(st.brands)) st.brands = [];
 const bkey = (b) => (b || '').trim().toLowerCase();
+// Бренд с одной вещью, «Ноунейм» и вещи без бренда — в фильтре одной строкой «Другие» (Мария, 09.10.26);
+// вторая вещь бренда — и он сам появится отдельной строкой. В базе и названии бренд остаётся настоящий.
+const OTHER = 'другие';
+const BCOUNT = ITEMS.reduce((m, i) => { const k = bkey(i.brand); if (k) m[k] = (m[k] || 0) + 1; return m; }, {});
+const bgroup = (b) => { const k = bkey(b); return (!k || k === 'ноунейм' || (BCOUNT[k] || 0) < 2) ? OTHER : k; };
 // Бренд, записанный в базе по-разному (SELA / Sela), — одна строка; показываем самое частое написание
-const BRANDS = (() => { const m = new Map(); for (const i of ITEMS) { const k = bkey(i.brand); if (!k) continue; const e = m.get(k) || {}; e[i.brand] = (e[i.brand] || 0) + 1; m.set(k, e); }
-  return [...m].map(([k, e]) => ({ k, name: Object.entries(e).sort((a, b) => b[1] - a[1])[0][0] })).sort((a, b) => a.name.localeCompare(b.name, 'ru')); })();
+const BRANDS = (() => { const m = new Map(); for (const i of ITEMS) { const k = bgroup(i.brand); if (k === OTHER) continue; const e = m.get(k) || {}; e[i.brand] = (e[i.brand] || 0) + 1; m.set(k, e); }
+  return [...[...m].map(([k, e]) => ({ k, name: Object.entries(e).sort((a, b) => b[1] - a[1])[0][0] })).sort((a, b) => a.name.localeCompare(b.name, 'ru')), { k: OTHER, name: 'Другие' }]; })();
 let brandQ = '';
 delete st.transit;
 if (st.color && !COLOR_GROUPS.some(g => g.name === st.color)) st.color = null;
@@ -40,7 +45,7 @@ function match(it, skip) {
   if (skip !== 'cat' && st.cat && it.cat !== st.cat) return false;
   if (skip !== 'cat' && st.sub && it.sub !== st.sub) return false;
   if (skip !== 'color' && st.color && colorGroup(it.color)?.name !== st.color) return false;
-  if (skip !== 'brand' && st.brands.length && st.brands.length < BRANDS.length && !st.brands.includes(bkey(it.brand))) return false;
+  if (skip !== 'brand' && st.brands.length && st.brands.length < BRANDS.length && !st.brands.includes(bgroup(it.brand))) return false;
   if (st.shop && !(it.shop || '').split(', ').includes(st.shop)) return false;
   if (st.photo === 'yes' && !it.photo) return false;
   if (st.photo === 'no' && it.photo) return false;
@@ -72,7 +77,7 @@ function renderFilters() {
   const cbase = ITEMS.filter(it => match(it, 'color'));
   document.getElementById('f-color').innerHTML = COLOR_GROUPS.filter(g => ITEMS.some(i => colorGroup(i.color) === g)).map(g => `<button class="chip" data-color="${esc(g.name)}" aria-pressed="${st.color === g.name}"><span class="sw" style="background:${g.sw}"></span>${esc(g.name)} <span class="n">${cbase.filter(i => colorGroup(i.color) === g).length}</span></button>`).join('');
   const bbase = ITEMS.filter(it => match(it, 'brand'));
-  document.getElementById('f-brand-list').innerHTML = BRANDS.map(b => { const n = bbase.filter(i => bkey(i.brand) === b.k).length;
+  document.getElementById('f-brand-list').innerHTML = BRANDS.map(b => { const n = bbase.filter(i => bgroup(i.brand) === b.k).length;
     return `<label data-k="${esc(b.k)}"${n ? '' : ' class="zero"'}><input type="checkbox" value="${esc(b.k)}" ${st.brands.includes(b.k) ? 'checked' : ''}><span>${esc(b.name)}</span><span class="n">${n}</span></label>`; }).join('');
   document.querySelectorAll('#f-brand-list input').forEach(c => c.onchange = () => { st.brands = c.checked ? [...st.brands, c.value] : st.brands.filter(k => k !== c.value); render(); });
   filterBrandList();
