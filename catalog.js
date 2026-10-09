@@ -111,7 +111,7 @@ function render() {
   document.getElementById('count').textContent = `Показано ${list.length} из ${ITEMS.length}`;
   document.getElementById('grid').innerHTML = list.length ? list.map(it => `<button class="card" data-no="${it.no}">
       <div class="ph">${photoHTML(it)}<div class="badges">${it.fav ? '<span class="badge">⭐</span>' : ''}${it.status !== 'дома' ? `<span class="badge transit">${esc(it.status)}</span>` : ''}${!it.core ? '<span class="badge">архив</span>' : ''}${it.photoKind === 'store' ? '<span class="badge">фото магазина</span>' : ''}</div></div>
-      <div class="cname">${esc(it.name)}</div><div class="cmeta"><b class="cno">${it.no}</b> · ${[it.brand, it.color].filter(Boolean).map(esc).join(' · ')}</div></button>`).join('') : '<div class="empty">Ничего не нашлось — попробуй сбросить фильтры</div>';
+      <div class="cname">${esc(it.short || it.name)}</div><div class="cmeta"><b class="cno">${it.no}</b> · ${[it.brand, it.color].filter(Boolean).map(esc).join(' · ')}</div></button>`).join('') : '<div class="empty">Ничего не нашлось — попробуй сбросить фильтры</div>';
   document.querySelectorAll('.card').forEach(c => c.onclick = () => openItem(+c.dataset.no));
   if (window.__loadPhotos) window.__loadPhotos(document.getElementById('grid'));
 }
