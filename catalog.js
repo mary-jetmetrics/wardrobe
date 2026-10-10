@@ -253,7 +253,7 @@ async function tSync() {
       await window.__trips.write(id, data, sha, `«${data.title}»: вещи из гардероба`);
       T.status = 'ok'; break;
     } catch (e) {
-      if ((e.status === 409 || e.status === 422) && attempt < 2) continue;
+      if ((e.status === 409 || e.status === 422) && attempt < 2) { await new Promise(r => setTimeout(r, 800)); continue; }
       T.status = e.status === 403 || e.status === 404 ? 'denied' : 'err'; break;
     }
   }

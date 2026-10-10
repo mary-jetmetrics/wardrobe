@@ -62,7 +62,8 @@ const TRIPS_API = `https://api.github.com/repos/${OWNER}/trips-data`;
 const b64dec = (b64) => new TextDecoder().decode(Uint8Array.from(atob(b64.replace(/\n/g, '')), c => c.charCodeAt(0)));
 const b64enc = (str) => { const bytes = new TextEncoder().encode(str); let bin = ''; for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000)); return btoa(bin); };
 async function tgh(path, opts = {}) {
-  const r = await fetch(TRIPS_API + path, { ...opts, headers: { Authorization: `Bearer ${TOKEN}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'Content-Type': 'application/json' } });
+  // без кеша: браузер держит ответ GitHub минуту, и после записи читалась старая версия файла (sha) → конфликт 409
+  const r = await fetch(TRIPS_API + path, { cache: 'no-store', ...opts, headers: { Authorization: `Bearer ${TOKEN}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'Content-Type': 'application/json' } });
   if (!r.ok) { const e = new Error('GitHub ответил ' + r.status); e.status = r.status; throw e; }
   return r.json();
 }
