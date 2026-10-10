@@ -1,6 +1,7 @@
 'use strict';
 const ITEMS = window.__ITEMS;
-const CAT_ORDER = ['Верх', 'Низ', 'Платья', 'Верхняя одежда', 'Спорт', 'Купальники', 'Обувь', 'Аксессуары', 'Бельё'];
+// порядок категорий везде — в каталоге, в «В поездку» и в списке «Поездок»; верхняя одежда — первой (Мария, 10.10.26)
+const CAT_ORDER = ['Верхняя одежда', 'Верх', 'Низ', 'Платья', 'Спорт', 'Купальники', 'Обувь', 'Аксессуары', 'Бельё'];
 const SW = { 'Белый': '#f7f6f2', 'Молочный': '#f2ece0', 'Бежевый': '#e7d9c4', 'Жёлтый': '#f8e7a0', 'Розовый': '#f4c9d4', 'Красный': '#df6b63', 'Голубой': '#c7e2f3', 'Синий': '#8fa9d4', 'Зелёный': '#bfdcb4', 'Оливковый': '#c4c294', 'Коричневый': '#a98a73', 'Серый': '#cfcfcf', 'Чёрный': '#3a3535', 'Фиолетовый': '#cdbde9', 'Сиреневый': '#d9cdee', 'Бирюзовый': '#b6e2db', 'Серебристый': '#dedede', 'Цветной': '#e9d7f0', 'Bone': '#e8e2d6', 'Светло-коричневый': '#cbb096', 'Разные': '#e6e4e2' };
 const COLOR_GROUPS = [
   { name: 'Белые и молочные', sw: '#f5f1e8', colors: ['Белый', 'Молочный'] },
@@ -250,6 +251,9 @@ function tApply(data, want) {
     let at = -1; sec.items.forEach((x, k) => { if ((x.group || '') === it.cat) at = k; });
     if (at < 0) sec.items.push(tLine(it)); else sec.items.splice(at + 1, 0, tLine(it));
   });
+  // группы в «Поездках» — в порядке каталога; внутри группы порядок не трогаем (сортировка устойчивая)
+  const rank = (g) => { const k = CAT_ORDER.indexOf(g || ''); return k < 0 ? CAT_ORDER.length : k; };
+  sec.items.sort((a, b) => rank(a.group) - rank(b.group));
 }
 async function tSync() {
   if (T.busy || !tDirty()) return;
