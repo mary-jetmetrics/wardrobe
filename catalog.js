@@ -182,3 +182,130 @@ document.getElementById('reset').onclick = () => { Object.assign(st, structuredC
 document.querySelectorAll('.clr').forEach(b => b.onclick = () => { st[b.dataset.clr] = structuredClone(CLEAR[b.dataset.clr]); render(); });
 buildTree();
 render();
+
+/* ---------- В поездку: отбор вещей в список «Поездок» (только веб — нужен ключ к trips-data) ----------
+   Выбранное хранится в самой поездке: раздел «Одежда и обувь», у вещи из гардероба поле wardrobe = номер.
+   Решения Марии 10.10.26: отбор в гардеробе, в «Поездки» — полное название и номер, подгруппы как в каталоге;
+   группы с подгруппами, невыбранные бледнее, число в розовом кружке, отправка сама через пару секунд. */
+const TRIP_SECTION = 'Одежда и обувь';
+const T = { id: null, title: '', dates: null, picked: new Set(), open: '', sub: {}, status: 'ok', reminders: [], drawer: false, timer: null, busy: false, again: false };
+const tItems = () => ITEMS.filter(i => i.core);
+const tCats = () => CAT_ORDER.filter(c => tItems().some(i => i.cat === c));
+const tDates = (d) => { if (!d || !d.start) return ''; const [, m1, d1] = d.start.split('-'), [, m2, d2] = (d.end || d.start).split('-'); return m1 === m2 ? `${+d1}–${+d2}.${m1}` : `${+d1}.${m1}–${+d2}.${m2}`; };
+const tLine = (it) => ({ text: `${it.name} · ${it.no}`, done: false, bag: null, group: it.cat, sub: it.sub || '', parent: '', wardrobe: it.no });
+const tThings = (n) => { const a = n % 10, b = n % 100; return `${n} ${a === 1 && b !== 11 ? 'вещь' : a >= 2 && a <= 4 && (b < 12 || b > 14) ? 'вещи' : 'вещей'}`; };
+
+async function tPicker() {
+  const d = document.getElementById('dlg');
+  d.innerHTML = '<div class="tpick"><h2>В какую поездку?</h2><p class="thint">Загружаю поездки…</p></div>'; d.showModal();
+  d.onclick = (e) => { if (e.target === d) d.close(); };
+  try {
+    const list = (await window.__trips.list()).slice().sort((a, b) => (b.dates?.start || '').localeCompare(a.dates?.start || ''));
+    const today = new Date().toISOString().slice(0, 10);
+    d.querySelector('.tpick').innerHTML = '<h2>В какую поездку?</h2>' + list.map(t => `<button class="trow${(t.dates?.end || '') < today ? ' past' : ''}" type="button" data-trip="${esc(t.id)}"><span>${esc(t.title)}</span><span class="thint">${esc(tDates(t.dates))}${t.dates?.start ? '.' + t.dates.start.slice(0, 4) : ''}</span></button>`).join('')
+      + '<p class="thint">Новую поездку заводим в «Поездках».</p>';
+    d.querySelectorAll('[data-trip]').forEach(b => b.onclick = () => { d.close(); tEnter(b.dataset.trip); });
+  } catch (e) {
+    d.querySelector('.tpick').innerHTML = `<h2>В какую поездку?</h2><p class="thint">${e.status === 404 || e.status === 403 ? 'У этого ключа нет доступа к «Поездкам». Войди ключом «Поездок».' : 'Не получилось загрузить поездки — проверь интернет.'}</p>`;
+  }
+}
+async function tEnter(id) {
+  Object.assign(T, { id, picked: new Set(), reminders: [], drawer: false, status: 'load' });
+  document.querySelector('.layout').hidden = true; document.getElementById('trip').hidden = false;
+  document.getElementById('q').hidden = true; document.getElementById('tripopen').hidden = true; tRender();
+  try {
+    const { data } = await window.__trips.read(id);
+    T.title = data.title; T.dates = data.dates;
+    const sec = (data.packing?.sections || []).find(s => s.title === TRIP_SECTION);
+    (sec ? sec.items : []).forEach(i => { if (i.wardrobe && ITEMS.some(x => x.no === i.wardrobe)) T.picked.add(i.wardrobe); });
+    T.status = 'ok'; T.open = T.open || tCats()[0];
+    try { localStorage.setItem('wardrobe-trip', id); } catch (e) {}
+  } catch (e) { T.status = 'loaderr'; }
+  tRender(); window.scrollTo(0, 0);
+}
+function tExit() { document.getElementById('trip').hidden = true; document.querySelector('.layout').hidden = false; document.getElementById('q').hidden = false; document.getElementById('tripopen').hidden = false; T.drawer = false; tDrawer(); try { localStorage.removeItem('wardrobe-trip'); } catch (e) {} render(); }
+function tToggle(no) {
+  T.picked.has(no) ? T.picked.delete(no) : T.picked.add(no);
+  T.status = 'busy'; tRender(); clearTimeout(T.timer); T.timer = setTimeout(tSync, 2000);
+}
+function tApply(data) {
+  data.packing = data.packing || { sections: [] };
+  let sec = data.packing.sections.find(s => s.title === TRIP_SECTION);
+  if (!sec) { sec = { title: TRIP_SECTION, items: [] }; data.packing.sections.unshift(sec); }
+  const have = new Set(sec.items.filter(i => i.wardrobe).map(i => i.wardrobe));
+  sec.items = sec.items.filter(i => {
+    if (!i.wardrobe || T.picked.has(i.wardrobe)) return true;
+    if (i.done && !T.reminders.includes(i.wardrobe)) T.reminders.push(i.wardrobe);
+    return false;
+  });
+  ITEMS.filter(it => T.picked.has(it.no) && !have.has(it.no)).forEach(it => {
+    let at = -1; sec.items.forEach((x, k) => { if ((x.group || '') === it.cat) at = k; });
+    if (at < 0) sec.items.push(tLine(it)); else sec.items.splice(at + 1, 0, tLine(it));
+  });
+}
+async function tSync() {
+  if (T.busy) { T.again = true; return; }
+  T.busy = true; T.again = false; const id = T.id;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const { data, sha } = await window.__trips.read(id);
+      tApply(data);
+      await window.__trips.write(id, data, sha, `«${data.title}»: вещи из гардероба`);
+      T.status = 'ok'; break;
+    } catch (e) {
+      if ((e.status === 409 || e.status === 422) && attempt < 2) continue;
+      T.status = e.status === 403 || e.status === 404 ? 'denied' : 'err'; break;
+    }
+  }
+  T.busy = false; if (T.id === id) tRender();
+  if (T.again) tSync();
+}
+function tRender() {
+  const el = document.getElementById('trip'); if (el.hidden) return;
+  const pk = [...T.picked];
+  const st2 = { load: ['busy', 'Загружаю поездку…'], loaderr: ['err', 'Не получилось открыть поездку — проверь интернет'], busy: ['busy', 'Отправляю в «Поездки»…'], ok: ['', pk.length ? 'В «Поездках» актуально' : 'Пока ничего не выбрано'],
+    err: ['err', 'Не отправилось — проверь интернет; отправлю при следующем выборе'], denied: ['err', 'У этого ключа нет доступа к «Поездкам»'] }[T.status] || ['', ''];
+  const groups = tCats().map(c => {
+    const all = tItems().filter(i => i.cat === c), n = all.filter(i => T.picked.has(i.no)).length, open = T.open === c;
+    const subs = [...new Set(all.map(i => i.sub).filter(Boolean))], cur = T.sub[c] || '';
+    const list = all.filter(i => !cur || i.sub === cur);
+    return `<section class="tgrp${n ? ' has' : ''}"><button type="button" data-topen="${esc(c)}" aria-expanded="${open}"><span class="name">${esc(c)}</span><span class="cnt">${n ? `выбрано <b>${n}</b> · ` : ''}${all.length}</span></button>
+      ${open ? `<div class="inner">${subs.length > 1 ? `<div class="tsubs">${['', ...subs].map(s => { const k = all.filter(i => (!s || i.sub === s) && T.picked.has(i.no)).length;
+          return `<button class="tsub" type="button" data-tsub="${esc(c)}|${esc(s)}" aria-pressed="${cur === s}">${esc(s || 'Все')} <span class="n">${all.filter(i => !s || i.sub === s).length}</span>${k ? `<span class="tnum">${k}</span>` : ''}</button>`; }).join('')}</div>` : ''}
+        <div class="grid">${list.map(it => { const on = T.picked.has(it.no);
+          return `<button class="card tcard${on ? ' on' : ''}" type="button" data-tno="${it.no}" aria-pressed="${on}"><div class="ph">${photoHTML(it)}<span class="tmark" aria-hidden="true">${on ? '✓' : '+'}</span></div>
+            <div class="cname">${esc(it.short || it.name)}</div><div class="cmeta"><b class="cno">${it.no}</b> · ${[it.brand, it.color].filter(Boolean).map(esc).join(' · ')}</div></button>`; }).join('')}</div></div>` : ''}</section>`;
+  }).join('');
+  el.innerHTML = `<div class="tbar"><div class="who"><button class="tback" type="button" data-texit="1">← Каталог</button><div class="t">${esc(T.title || 'Поездка')}<span>${esc(tDates(T.dates))}</span></div>
+    <div class="tsync ${st2[0]}"><i></i>${esc(st2[1])}</div></div><button class="tbtn" type="button" data-tdrawer="1">Список · ${pk.length}</button></div>${T.status === 'load' || T.status === 'loaderr' ? '' : groups}`;
+  if (window.__loadPhotos) window.__loadPhotos(el);
+  tDrawer();
+}
+function tDrawer() {
+  const box = document.getElementById('tripdrawer');
+  if (!T.drawer) { box.innerHTML = ''; return; }
+  const by = {}; [...T.picked].forEach(n => { const it = ITEMS.find(i => i.no === n); if (it) (by[it.cat] = by[it.cat] || []).push(it); });
+  const rem = T.reminders.map(n => ITEMS.find(i => i.no === n)).filter(Boolean);
+  box.innerHTML = `<div class="tshade" data-tclose="1"></div><aside class="tdrawer" aria-label="Список для «Поездок»"><header><b>Список · ${tThings(T.picked.size)}</b><button class="tclose" type="button" data-tclose="1">Закрыть</button></header>
+    <div class="body">${rem.length ? `<div class="tremind">Уже была собрана — вынь из чемодана: ${rem.map(it => `${esc(it.name)} · ${it.no}`).join('; ')}. <button type="button" data-tforget="1">Вынула</button></div>` : ''}
+    <p class="tsec">${TRIP_SECTION} <span class="thint" style="display:inline">— так в «Поездках»</span></p>
+    ${CAT_ORDER.filter(c => by[c]).map(c => `<p class="tsec">${esc(c)}</p>${by[c].map(it => `<div class="tli"><span>${esc(it.name)} <span class="num">· ${it.no}</span></span><button type="button" data-tno="${it.no}" aria-label="Убрать">×</button></div>`).join('')}`).join('') || '<p class="thint">Пока пусто — нажимай на вещи.</p>'}
+    <p class="thint" style="margin-top:10px">Что куда положить и галочки — в «Поездках».</p></div></aside>`;
+}
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-tno], [data-topen], [data-tsub], [data-texit], [data-tdrawer], [data-tclose], [data-tforget], #tripopen'); if (!b) return;
+  const d = b.dataset;
+  if (b.id === 'tripopen') return tPicker();
+  if (d.tno) return tToggle(+d.tno);
+  if (d.topen !== undefined) { T.open = T.open === d.topen ? '' : d.topen; return tRender(); }
+  if (d.tsub !== undefined) { const [c, s] = d.tsub.split('|'); T.sub[c] = s; return tRender(); }
+  if (d.texit) return tExit();
+  if (d.tdrawer) { T.drawer = true; return tDrawer(); }
+  if (d.tclose) { T.drawer = false; return tDrawer(); }
+  if (d.tforget) { T.reminders = []; return tDrawer(); }
+});
+if (window.__trips) {
+  document.getElementById('tripopen').hidden = false;
+  let last = null; try { last = localStorage.getItem('wardrobe-trip'); } catch (e) {}
+  if (last) tEnter(last);
+}

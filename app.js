@@ -56,6 +56,25 @@ window.__loadPhotos = rootEl => rootEl.querySelectorAll('img[data-file]').forEac
   if (io) io.observe(img); else { queue.push(img); pump(); }
 });
 
+/* ---------- «Поездки»: список поездок и запись вещей в поездку (закрытый репозиторий trips-data) ----------
+   Тот же ключ: у ключа «Поездок» есть доступ и к гардеробу (Мария, 09.10.26). Формат файла — как пишет само приложение «Поездки». */
+const TRIPS_API = `https://api.github.com/repos/${OWNER}/trips-data`;
+const b64dec = (b64) => new TextDecoder().decode(Uint8Array.from(atob(b64.replace(/\n/g, '')), c => c.charCodeAt(0)));
+const b64enc = (str) => { const bytes = new TextEncoder().encode(str); let bin = ''; for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000)); return btoa(bin); };
+async function tgh(path, opts = {}) {
+  const r = await fetch(TRIPS_API + path, { ...opts, headers: { Authorization: `Bearer ${TOKEN}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'Content-Type': 'application/json' } });
+  if (!r.ok) { const e = new Error('GitHub ответил ' + r.status); e.status = r.status; throw e; }
+  return r.json();
+}
+window.__trips = {
+  async list() { const j = await tgh(`/contents/index.json?ref=${BRANCH}`); return JSON.parse(b64dec(j.content)); },
+  async read(id) { const j = await tgh(`/contents/trips/${encodeURIComponent(id)}.json?ref=${BRANCH}`); return { data: JSON.parse(b64dec(j.content)), sha: j.sha }; },
+  async write(id, data, sha, message) {
+    const j = await tgh(`/contents/trips/${encodeURIComponent(id)}.json`, { method: 'PUT', body: JSON.stringify({ message, content: b64enc(JSON.stringify(data, null, 1)), sha, branch: BRANCH }) });
+    return j.content.sha;
+  },
+};
+
 /* ---------- вход и загрузка ---------- */
 function showGate(msg) {
   gate.innerHTML = `<h1 class="title">Мой гардероб</h1>

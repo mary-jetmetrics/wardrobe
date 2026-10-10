@@ -129,6 +129,56 @@ dialog::backdrop { background: #211c1c66; }
   .search#q { width: 100%; }
 }
 
+/* ---------- В поездку (только веб) ---------- */
+.tripopen { padding: 8px 14px; border: 1px solid var(--accent); border-radius: var(--radius-sm); background: var(--bg); color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; }
+.trip { display: grid; gap: 14px; }
+.tbar { position: sticky; top: 0; z-index: 5; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; box-shadow: 0 6px 14px rgba(33,28,28,.06); }
+.tbar .who { display: grid; gap: 2px; }
+.tbar .t { font-family: var(--font-display); font-size: 20px; line-height: 24px; }
+.tbar .t span { font: 13px var(--font-body); color: var(--ink-muted); margin-left: 6px; }
+.tback { border: 0; background: none; padding: 0; color: var(--ink-muted); font: inherit; font-size: 13px; cursor: pointer; justify-self: start; }
+.tsync { font-size: 12px; line-height: 16px; color: var(--ink-muted); display: flex; gap: 6px; align-items: center; }
+.tsync i { width: 8px; height: 8px; border-radius: 50%; background: #138540; }
+.tsync.busy i { background: var(--accent); }
+.tsync.err { color: #d4433a; } .tsync.err i { background: #d4433a; }
+.tbtn { border: 1px solid var(--accent); background: var(--accent); color: #fff; font: inherit; font-weight: 600; border-radius: var(--radius-sm); padding: 7px 14px; cursor: pointer; }
+.tgrp { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.tgrp > button { width: 100%; border: 0; background: var(--surface); padding: 11px 14px; display: flex; justify-content: space-between; align-items: center; gap: 12px; text-align: left; font: inherit; cursor: pointer; }
+.tgrp .name { font-family: var(--font-display); font-size: 19px; line-height: 24px; }
+.tgrp .cnt { font-size: 13px; color: var(--ink-muted); }
+.tgrp .cnt b { color: var(--ink); font-weight: 600; }
+.tgrp .inner { padding: 12px 14px 16px; display: grid; gap: 12px; }
+.tsubs { display: flex; flex-wrap: wrap; gap: 6px; }
+.tsub { border: 1px solid var(--line); background: var(--bg); border-radius: 999px; padding: 4px 12px; font: inherit; font-size: 13px; display: inline-flex; gap: 6px; align-items: baseline; cursor: pointer; }
+.tsub .n { color: var(--ink-muted); }
+.tsub[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: #fff; }
+.tsub[aria-pressed="true"] .n { color: #e9e4e4; }
+.tnum { box-sizing: border-box; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--accent); color: #fff; font: 600 11px/18px var(--font-body); font-variant-numeric: tabular-nums; text-align: center; display: inline-block; align-self: center; }
+.tcard { position: relative; transition: opacity .15s; }
+.tgrp.has .tcard:not(.on) { opacity: .45; }
+.tgrp.has .tcard:not(.on):hover { opacity: .85; }
+.tmark { position: absolute; top: 6px; right: 6px; width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line-strong); background: rgba(255,255,255,.92); display: grid; place-items: center; font-size: 16px; line-height: 1; z-index: 1; }
+.tcard.on .tmark { background: var(--accent); border-color: var(--accent); color: #fff; }
+.tdrawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(400px, 100%); background: var(--bg); box-shadow: 0 12px 32px rgba(33,28,28,.16); z-index: 20; display: grid; grid-template-rows: auto 1fr; padding-top: env(safe-area-inset-top, 0px); }
+.tdrawer header { padding: 14px 16px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; }
+.tdrawer header b { font-family: var(--font-display); font-weight: 400; font-size: 20px; }
+.tdrawer .body { overflow-y: auto; padding: 10px 16px calc(16px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 6px; align-content: start; }
+.tshade { position: fixed; inset: 0; background: rgba(33,28,28,.25); z-index: 19; }
+.tclose { border: 0; background: none; color: var(--ink-muted); font: inherit; cursor: pointer; }
+.tsec { font-weight: 600; font-size: 12.5px; line-height: 16px; margin: 8px 0 0; }
+.tli { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: start; font-size: 13px; line-height: 18px; padding: 2px 0; }
+.tli .num { color: var(--ink-muted); }
+.tli button { border: 0; background: none; color: var(--ink-muted); padding: 0 4px; font-size: 16px; line-height: 18px; cursor: pointer; }
+.tremind { background: var(--pink); border-radius: var(--radius-md); padding: 10px 12px; font-size: 13px; line-height: 18px; }
+.tremind button { border: 0; background: none; padding: 0; color: var(--ink-muted); font: inherit; font-size: 12px; text-decoration: underline; cursor: pointer; }
+.thint { margin: 0; font-size: 12px; color: var(--ink-muted); }
+.tpick { padding: 20px; display: grid; gap: 10px; min-width: min(420px, 90vw); }
+.tpick h2 { font-family: var(--font-display); font-weight: 400; font-size: 24px; margin: 0 0 4px; }
+.tpick button.trow { display: flex; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--bg); font: inherit; text-align: left; cursor: pointer; }
+.tpick button.trow:hover { background: var(--surface); }
+.tpick .past { opacity: .6; }
+@media (prefers-reduced-motion: reduce) { .tcard { transition: none; } }
+
 [hidden] { display: none !important; }
 .gate { max-width: 420px; margin: 0 auto; padding: 64px 16px; display: grid; gap: 16px; }
 .gate-form { display: grid; gap: 10px; }
@@ -147,7 +197,10 @@ dialog::backdrop { background: #211c1c66; }
       <svg class="wave" viewBox="0 0 190 8" aria-hidden="true"><path d="M1 4 Q 6 0 11 4 T 21 4 T 31 4 T 41 4 T 51 4 T 61 4 T 71 4 T 81 4 T 91 4 T 101 4 T 111 4 T 121 4 T 131 4 T 141 4 T 151 4 T 161 4 T 171 4 T 181 4"/></svg>
     </div>
     <input class="search" id="q" type="search" placeholder="Поиск: «юбка розовая», «Sela», «лиоцелл», номер вещи…" aria-label="Поиск">
+    <button class="tripopen" id="tripopen" type="button" hidden>🧳 В поездку</button>
   </header>
+  <section class="trip" id="trip" hidden aria-label="Сбор в поездку"></section>
+  <div id="tripdrawer"></div>
   <div class="layout">
     <aside class="side" aria-label="Фильтры">
       <div class="side-top"><span class="cap">Фильтры</span><button class="reset" id="reset" type="button">Сбросить все</button></div>
@@ -177,7 +230,7 @@ dialog::backdrop { background: #211c1c66; }
   </div>
 </main>
 <dialog id="dlg"></dialog>
-<script>window.__BUILD = 'b173a0df';</script>
-<script src="app.js?v=b173a0df"></script>
+<script>window.__BUILD = 'eaba3e03';</script>
+<script src="app.js?v=eaba3e03"></script>
 </body>
 </html>
