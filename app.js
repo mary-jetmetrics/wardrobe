@@ -109,4 +109,16 @@ async function boot() {
   const s = document.createElement('script'); s.src = 'catalog.js?v=' + (window.__BUILD || ''); document.body.appendChild(s);
 }
 boot();
+
+/* ---------- свежая версия: GitHub Pages разрешает браузеру 10 минут держать index.html — после выкладки
+   Мария видела старый каталог. Сверяем сборку с сервером и при расхождении один раз перезагружаемся. ---------- */
+(async () => {
+  try {
+    const html = await (await fetch(location.pathname, { cache: 'reload' })).text();
+    const m = html.match(/__BUILD = '([a-z0-9]+)'/);
+    if (m && window.__BUILD && m[1] !== window.__BUILD && sessionStorage.getItem('wardrobe-reloaded') !== m[1]) {
+      sessionStorage.setItem('wardrobe-reloaded', m[1]); location.reload();
+    }
+  } catch (e) { /* без сети — работаем на том, что есть */ }
+})();
 })();
