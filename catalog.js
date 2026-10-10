@@ -278,10 +278,11 @@ function tRender() {
     const all = tItems().filter(i => i.cat === c), n = all.filter(i => T.picked.has(i.no)).length, open = T.open === c;
     const subs = [...new Set(all.map(i => i.sub).filter(Boolean))], cur = T.sub[c] || '';
     const list = all.filter(i => !cur || i.sub === cur);
-    return `<section class="tgrp${n ? ' has' : ''}"><button type="button" data-topen="${esc(c)}" aria-expanded="${open}"><span class="name">${esc(c)}</span><span class="cnt">${n ? `выбрано <b>${n}</b> · ` : ''}${all.length}</span></button>
-      ${open ? `<div class="inner">${subs.length > 1 ? `<div class="tsubs">${['', ...subs].map(s => { const k = all.filter(i => (!s || i.sub === s) && T.picked.has(i.no)).length;
-          return `<button class="tsub" type="button" data-tsub="${esc(c)}|${esc(s)}" aria-pressed="${cur === s}">${esc(s || 'Все')} <span class="n">${all.filter(i => !s || i.sub === s).length}</span>${k ? `<span class="tnum">${k}</span>` : ''}</button>`; }).join('')}</div>` : ''}
-        <div class="grid">${list.map(it => { const on = T.picked.has(it.no);
+    const chips = open && subs.length > 1 ? `<div class="tsubs">${['', ...subs].map(s => { const k = all.filter(i => (!s || i.sub === s) && T.picked.has(i.no)).length;
+        return `<button class="tsub" type="button" data-tsub="${esc(c)}|${esc(s)}" aria-pressed="${cur === s}">${esc(s || 'Все')} <span class="n">${all.filter(i => !s || i.sub === s).length}</span>${k ? `<span class="tnum">${k}</span>` : ''}</button>`; }).join('')}</div>` : '';
+    return `<section class="tgrp${n ? ' has' : ''}" data-cat="${esc(c)}"><div class="thead" data-topen="${esc(c)}"><button class="tname name" type="button" data-topen="${esc(c)}" aria-expanded="${open}">${esc(c)}</button>${chips}
+      <button class="tcnt cnt" type="button" data-topen="${esc(c)}">${n ? `выбрано <b>${n}</b> · ` : ''}${all.length}</button></div>
+      ${open ? `<div class="inner"><div class="grid">${list.map(it => { const on = T.picked.has(it.no);
           return `<button class="card tcard${on ? ' on' : ''}" type="button" data-tno="${it.no}" aria-pressed="${on}"><div class="ph">${photoHTML(it)}<span class="tmark" aria-hidden="true">${on ? '✓' : '+'}</span></div>
             <div class="cname">${esc(it.short || it.name)}</div><div class="cmeta"><b class="cno">${it.no}</b> · ${[it.brand, it.color].filter(Boolean).map(esc).join(' · ')}</div></button>`; }).join('')}</div></div>` : ''}</section>`;
   }).join('');
@@ -303,11 +304,18 @@ function tDrawer() {
     <p class="thint" style="margin-top:10px">Что куда положить и галочки — в «Поездках».</p></div></aside>`;
 }
 document.addEventListener('click', (e) => {
-  const b = e.target.closest('[data-tno], [data-topen], [data-tsub], [data-texit], [data-tdrawer], [data-tclose], [data-tforget], [data-tsend], #tripopen'); if (!b) return;
+  const b = e.target.closest('[data-tno], [data-tsub], [data-topen], [data-texit], [data-tdrawer], [data-tclose], [data-tforget], [data-tsend], #tripopen'); if (!b) return;
   const d = b.dataset;
   if (b.id === 'tripopen') return tPicker();
   if (d.tno) return tToggle(+d.tno);
-  if (d.topen !== undefined) { T.open = T.open === d.topen ? '' : d.topen; return tRender(); }
+  if (d.topen !== undefined) {
+    // шапка группы остаётся там, где на неё нажали: раскрывается вниз, а не уезжает вверх (Мария, 10.10.26)
+    const head = () => [...document.querySelectorAll('.tgrp')].find(g => g.dataset.cat === d.topen);
+    const before = head()?.getBoundingClientRect().top;
+    T.open = T.open === d.topen ? '' : d.topen; tRender();
+    const g = head(); if (g && before !== undefined) window.scrollBy(0, g.getBoundingClientRect().top - before);
+    return;
+  }
   if (d.tsub !== undefined) { const [c, s] = d.tsub.split('|'); T.sub[c] = s; return tRender(); }
   if (d.texit) return tExit();
   if (d.tdrawer) { T.drawer = true; return tDrawer(); }
