@@ -190,7 +190,7 @@ render();
    группы с подгруппами, невыбранные бледнее, число в розовом кружке. Отправка — по кнопке (Мария, 10.10.26: автоотправка
    ощущалась как «что-то грузится»); неотправленный выбор хранится на устройстве, пока не отправлен. */
 const TRIP_SECTION = 'Одежда и обувь';
-const T = { id: null, title: '', dates: null, picked: new Set(), remote: new Set(), open: '', sub: {}, status: 'ok', reminders: [], drawer: false, busy: false };
+const T = { id: null, title: '', dates: null, picked: new Set(), remote: new Set(), open: new Set(), sub: {}, status: 'ok', reminders: [], drawer: false, busy: false };
 const tPendKey = () => 'wardrobe-trip-pending:' + T.id;
 const tDiff = () => ({ add: [...T.picked].filter(n => !T.remote.has(n)).length, del: [...T.remote].filter(n => !T.picked.has(n)).length });
 const tDirty = () => { const d = tDiff(); return d.add + d.del > 0; };
@@ -226,7 +226,7 @@ async function tEnter(id) {
     (sec ? sec.items : []).forEach(i => { if (i.wardrobe && ITEMS.some(x => x.no === i.wardrobe)) T.remote.add(i.wardrobe); });
     let pend = null; try { pend = JSON.parse(localStorage.getItem(tPendKey()) || 'null'); } catch (e) {}
     T.picked = new Set(Array.isArray(pend) ? pend.filter(n => ITEMS.some(x => x.no === n)) : T.remote);
-    T.status = 'ok'; T.open = ''; // поездка открывается со всеми категориями свёрнутыми (Мария, 10.10.26)
+    T.status = 'ok'; T.open = new Set(); // открывается со всеми категориями свёрнутыми; раскрываются независимо, есть «Развернуть/Свернуть все» (Мария, 10.10.26)
     try { localStorage.setItem('wardrobe-trip', id); } catch (e) {}
   } catch (e) { T.status = 'loaderr'; }
   tRender(); window.scrollTo(0, 0);
@@ -279,7 +279,7 @@ function tRender() {
     ok: dirty ? ['wait', `Не отправлено: ${[df.add ? '+' + df.add : '', df.del ? '−' + df.del : ''].filter(Boolean).join(', ')}`] : ['', pk.length ? 'В «Поездках» актуально' : 'Пока ничего не выбрано'],
     err: ['err', 'Не отправилось — проверь интернет и нажми «Отправить» ещё раз'], denied: ['err', 'У этого ключа нет доступа к «Поездкам»'] }[T.status] || ['', ''];
   const groups = tCats().map(c => {
-    const all = tItems().filter(i => i.cat === c), n = all.filter(i => T.picked.has(i.no)).length, open = T.open === c;
+    const all = tItems().filter(i => i.cat === c), n = all.filter(i => T.picked.has(i.no)).length, open = T.open.has(c);
     const subs = [...new Set(all.map(i => i.sub).filter(Boolean))], cur = T.sub[c] || '';
     const list = all.filter(i => !cur || i.sub === cur);
     const chips = open && subs.length > 1 ? `<div class="tsubs">${['', ...subs].map(s => { const k = all.filter(i => (!s || i.sub === s) && T.picked.has(i.no)).length;
@@ -291,7 +291,7 @@ function tRender() {
             <div class="cname">${esc(it.short || it.name)}</div><div class="cmeta"><b class="cno">${it.no}</b> · ${[it.brand, it.color].filter(Boolean).map(esc).join(' · ')}</div></button>`; }).join('')}</div></div>` : ''}</section>`;
   }).join('');
   el.innerHTML = `<div class="tbar"><div class="who"><button class="tback" type="button" data-texit="1">← Каталог</button><div class="t">${esc(T.title || 'Поездка')}<span>${esc(tDates(T.dates))}</span></div>
-    <div class="tsync ${st2[0]}"><i></i>${esc(st2[1])}</div></div><div class="tacts"><button class="tbtn2" type="button" data-tdrawer="1">Список · ${pk.length}</button>${dirty || T.status === 'busy' || T.status === 'err' ? `<button class="tbtn" type="button" data-tsend="1" ${T.status === 'busy' ? 'disabled' : ''}>${T.status === 'busy' ? 'Отправляю…' : 'Отправить в «Поездки»'}</button>` : ''}</div></div>${T.status === 'load' || T.status === 'loaderr' ? '' : groups}`;
+    <div class="tsync ${st2[0]}"><i></i>${esc(st2[1])}</div></div><div class="tacts"><button class="tall" type="button" data-tall="1">${T.open.size ? 'Свернуть все' : 'Развернуть все'}</button><button class="tbtn2" type="button" data-tdrawer="1">Список · ${pk.length}</button>${dirty || T.status === 'busy' || T.status === 'err' ? `<button class="tbtn" type="button" data-tsend="1" ${T.status === 'busy' ? 'disabled' : ''}>${T.status === 'busy' ? 'Отправляю…' : 'Отправить в «Поездки»'}</button>` : ''}</div></div>${T.status === 'load' || T.status === 'loaderr' ? '' : groups}`;
   if (window.__loadPhotos) window.__loadPhotos(el);
   tDrawer();
 }
@@ -308,7 +308,7 @@ function tDrawer() {
     <p class="thint" style="margin-top:10px">Что куда положить и галочки — в «Поездках».</p></div></aside>`;
 }
 document.addEventListener('click', (e) => {
-  const b = e.target.closest('[data-tno], [data-tsub], [data-topen], [data-texit], [data-tdrawer], [data-tclose], [data-tforget], [data-tsend], #tripopen'); if (!b) return;
+  const b = e.target.closest('[data-tno], [data-tsub], [data-topen], [data-texit], [data-tdrawer], [data-tclose], [data-tforget], [data-tsend], [data-tall], #tripopen'); if (!b) return;
   const d = b.dataset;
   if (b.id === 'tripopen') return tPicker();
   if (d.tno) return tToggle(+d.tno);
@@ -316,7 +316,7 @@ document.addEventListener('click', (e) => {
     // шапка группы остаётся там, где на неё нажали: раскрывается вниз, а не уезжает вверх (Мария, 10.10.26)
     const head = () => [...document.querySelectorAll('.tgrp')].find(g => g.dataset.cat === d.topen);
     const before = head()?.getBoundingClientRect().top;
-    T.open = T.open === d.topen ? '' : d.topen; tRender();
+    T.open.has(d.topen) ? T.open.delete(d.topen) : T.open.add(d.topen); tRender();
     const g = head(); if (g && before !== undefined) window.scrollBy(0, g.getBoundingClientRect().top - before);
     return;
   }
@@ -326,6 +326,7 @@ document.addEventListener('click', (e) => {
   if (d.tclose) { T.drawer = false; return tDrawer(); }
   if (d.tforget) { T.reminders = []; return tDrawer(); }
   if (d.tsend) return tSync();
+  if (d.tall) { T.open = T.open.size ? new Set() : new Set(tCats()); tRender(); const g = document.querySelector('.tgrp'); if (g && g.getBoundingClientRect().top < 0) window.scrollTo(0, 0); return; }
 });
 if (window.__trips) {
   document.getElementById('tripopen').hidden = false;
