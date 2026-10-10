@@ -226,7 +226,7 @@ async function tEnter(id) {
     (sec ? sec.items : []).forEach(i => { if (i.wardrobe && ITEMS.some(x => x.no === i.wardrobe)) T.remote.add(i.wardrobe); });
     let pend = null; try { pend = JSON.parse(localStorage.getItem(tPendKey()) || 'null'); } catch (e) {}
     T.picked = new Set(Array.isArray(pend) ? pend.filter(n => ITEMS.some(x => x.no === n)) : T.remote);
-    T.status = 'ok'; T.open = T.open || tCats()[0];
+    T.status = 'ok'; T.open = ''; // поездка открывается со всеми категориями свёрнутыми (Мария, 10.10.26)
     try { localStorage.setItem('wardrobe-trip', id); } catch (e) {}
   } catch (e) { T.status = 'loaderr'; }
   tRender(); window.scrollTo(0, 0);
