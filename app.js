@@ -78,7 +78,7 @@ window.__trips = {
 
 /* ---------- вход и загрузка ---------- */
 function showGate(msg) {
-  gate.innerHTML = `<h1 class="title">Мой гардероб</h1>
+  gate.innerHTML = `<h1 class="title">Гардероб</h1>
   <form id="login" class="gate-form">
     <p>Вставь ключ доступа — один раз на этом устройстве. Ключ хранится только здесь, в браузере.</p>
     ${msg ? `<p class="gate-err">${esc(msg)}</p>` : ''}
