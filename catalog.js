@@ -303,9 +303,10 @@ function tDrawer() {
   box.innerHTML = `<div class="tshade" data-tclose="1"></div><aside class="tdrawer" aria-label="Список для «Поездок»"><header><b>Список · ${tThings(T.picked.size)}</b><button class="tclose" type="button" data-tclose="1">Закрыть</button></header>
     <div class="body">${rem.length ? `<div class="tremind">Уже была собрана — вынь из чемодана: ${rem.map(it => `${esc(it.name)} · ${it.no}`).join('; ')}. <button type="button" data-tforget="1">Вынула</button></div>` : ''}
     <p class="tsec">${TRIP_SECTION} <span class="thint" style="display:inline">— так в «Поездках»</span></p>
-    ${CAT_ORDER.filter(c => by[c]).map(c => `<p class="tsec">${esc(c)}</p>${by[c].map(it => `<div class="tli"><span>${esc(it.name)} <span class="num">· ${it.no}</span></span><button type="button" data-tno="${it.no}" aria-label="Убрать">×</button></div>`).join('')}`).join('') || '<p class="thint">Пока пусто — нажимай на вещи.</p>'}
+    ${CAT_ORDER.filter(c => by[c]).map(c => `<p class="tsec">${esc(c)}</p>${by[c].map(it => `<div class="tli"><span class="tph">${photoHTML(it)}</span><span>${esc(it.name)} <span class="num">· ${it.no}</span></span><button type="button" data-tno="${it.no}" aria-label="Убрать">×</button></div>`).join('')}`).join('') || '<p class="thint">Пока пусто — нажимай на вещи.</p>'}
     ${tDirty() ? `<button class="tbtn" type="button" data-tsend="1" style="margin-top:10px;justify-self:start" ${T.busy ? 'disabled' : ''}>Отправить в «Поездки»</button>` : ''}
     <p class="thint" style="margin-top:10px">Что куда положить и галочки — в «Поездках».</p></div></aside>`;
+  if (window.__loadPhotos) window.__loadPhotos(box);
 }
 document.addEventListener('click', (e) => {
   const b = e.target.closest('[data-tno], [data-tsub], [data-topen], [data-texit], [data-tdrawer], [data-tclose], [data-tforget], [data-tsend], [data-tall], #tripopen'); if (!b) return;

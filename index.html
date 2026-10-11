@@ -174,7 +174,10 @@ dialog::backdrop { background: #211c1c66; }
 .tshade { position: fixed; inset: 0; background: rgba(33,28,28,.25); z-index: 19; }
 .tclose { border: 0; background: none; color: var(--ink-muted); font: inherit; cursor: pointer; }
 .tsec { font-weight: 600; font-size: 12.5px; line-height: 16px; margin: 8px 0 0; }
-.tli { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: start; font-size: 13px; line-height: 18px; padding: 2px 0; }
+.tli { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; gap: 10px; align-items: center; font-size: 13px; line-height: 18px; padding: 3px 0; }
+.tli .tph { width: 32px; height: 40px; border-radius: 4px; overflow: hidden; background: #fff; display: grid; place-items: center; }
+.tli .tph img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.tli .tph .ph-empty { padding: 0; } .tli .tph .dot { width: 12px; height: 12px; }
 .tli .num { color: var(--ink-muted); }
 .tli button { border: 0; background: none; color: var(--ink-muted); padding: 0 4px; font-size: 16px; line-height: 18px; cursor: pointer; }
 .tremind { background: var(--pink); border-radius: var(--radius-md); padding: 10px 12px; font-size: 13px; line-height: 18px; }
@@ -238,7 +241,7 @@ dialog::backdrop { background: #211c1c66; }
   </div>
 </main>
 <dialog id="dlg"></dialog>
-<script>window.__BUILD = '47c7b5d4';</script>
-<script src="app.js?v=47c7b5d4"></script>
+<script>window.__BUILD = 'fb940a06';</script>
+<script src="app.js?v=fb940a06"></script>
 </body>
 </html>
