@@ -163,8 +163,9 @@ dialog::backdrop { background: #211c1c66; }
 .tsub[aria-pressed="true"] .n { color: #e9e4e4; }
 .tnum { box-sizing: border-box; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--accent); color: #fff; font: 600 11px/18px var(--font-body); font-variant-numeric: tabular-nums; text-align: center; display: inline-block; align-self: center; }
 .tcard { position: relative; transition: opacity .15s; }
-.tgrp.has .tcard:not(.on) { opacity: .45; }
-.tgrp.has .tcard:not(.on):hover { opacity: .85; }
+/* выбранное бледнее, невыбранное в полном цвете — из него выбирают (Мария, 11.10.26: из бледных фото выбирать неудобно) */
+.tcard.on .ph img, .tcard.on .ph .ph-empty, .tcard.on .cname, .tcard.on .cmeta { opacity: .4; transition: opacity .15s; }
+.tcard.on:hover .ph img, .tcard.on:hover .cname, .tcard.on:hover .cmeta { opacity: .7; }
 .tmark { position: absolute; top: 6px; right: 6px; width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line-strong); background: rgba(255,255,255,.92); display: grid; place-items: center; font-size: 16px; line-height: 1; z-index: 1; }
 .tcard.on .tmark { background: var(--accent); border-color: var(--accent); color: #fff; }
 .tdrawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(400px, 100%); background: var(--bg); box-shadow: 0 12px 32px rgba(33,28,28,.16); z-index: 20; display: grid; grid-template-rows: auto 1fr; padding-top: env(safe-area-inset-top, 0px); }
