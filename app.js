@@ -112,13 +112,18 @@ boot();
 
 /* ---------- свежая версия: GitHub Pages разрешает браузеру 10 минут держать index.html — после выкладки
    Мария видела старый каталог. Сверяем сборку с сервером и при расхождении один раз перезагружаемся. ---------- */
-(async () => {
+// и при возвращении на вкладку: Мария держит каталог открытым, пока я выкладываю правки (неотправленный выбор поездки хранится на устройстве — перезагрузка его не теряет)
+async function checkFresh() {
   try {
     const html = await (await fetch(location.pathname, { cache: 'reload' })).text();
     const m = html.match(/__BUILD = '([a-z0-9]+)'/);
-    if (m && window.__BUILD && m[1] !== window.__BUILD && sessionStorage.getItem('wardrobe-reloaded') !== m[1]) {
-      sessionStorage.setItem('wardrobe-reloaded', m[1]); location.reload();
+    let done = null; try { done = sessionStorage.getItem('wardrobe-reloaded'); } catch (e) {}
+    if (m && window.__BUILD && m[1] !== window.__BUILD && done !== m[1]) {
+      try { sessionStorage.setItem('wardrobe-reloaded', m[1]); } catch (e) {}
+      location.reload();
     }
   } catch (e) { /* без сети — работаем на том, что есть */ }
-})();
+}
+checkFresh();
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkFresh(); });
 })();
