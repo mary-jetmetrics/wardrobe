@@ -163,10 +163,10 @@ dialog::backdrop { background: #211c1c66; }
 .tsub[aria-pressed="true"] .n { color: #e9e4e4; }
 .tnum { box-sizing: border-box; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--accent); color: #fff; font: 600 11px/18px var(--font-body); font-variant-numeric: tabular-nums; text-align: center; display: inline-block; align-self: center; }
 .tcard { position: relative; padding: 6px; margin: -6px; border-radius: 8px; transition: background .15s; }
-/* выбранное — на розовой подложке, фото бледнее; невыбранное в полном цвете — из него выбирают (Мария, 11.10.26).
-   multiply: белый фон фото становится розовым подложки, будто прозрачный */
+/* выбранное — на розовой подложке, место под фото светлее, фото бледнее; невыбранное в полном цвете — из него выбирают (Мария, 11.10.26).
+   Два оттенка розового: multiply делает белый фон фото цветом места под фото, белого квадрата нет */
 .tcard.on { background: var(--pink); }
-.tcard.on .ph { background: var(--pink); isolation: isolate; }
+.tcard.on .ph { background: var(--pink-block); isolation: isolate; }
 .tcard.on .ph img { background: transparent; mix-blend-mode: multiply; opacity: .55; transition: opacity .15s; }
 .tcard.on .ph .ph-empty { opacity: .55; }
 .tcard.on:hover .ph img { opacity: .8; }
@@ -246,7 +246,7 @@ dialog::backdrop { background: #211c1c66; }
   </div>
 </main>
 <dialog id="dlg"></dialog>
-<script>window.__BUILD = 'fc9ac4db';</script>
-<script src="app.js?v=fc9ac4db"></script>
+<script>window.__BUILD = '50efe41f';</script>
+<script src="app.js?v=50efe41f"></script>
 </body>
 </html>
