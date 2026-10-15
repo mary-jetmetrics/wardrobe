@@ -194,7 +194,7 @@ const T = { id: null, title: '', dates: null, picked: new Set(), remote: new Set
 const tPendKey = () => 'wardrobe-trip-pending:' + T.id;
 const tDiff = () => ({ add: [...T.picked].filter(n => !T.remote.has(n)).length, del: [...T.remote].filter(n => !T.picked.has(n)).length });
 const tDirty = () => { const d = tDiff(); return d.add + d.del > 0; };
-function tKeep() { try { if (tDirty()) localStorage.setItem(tPendKey(), JSON.stringify([...T.picked])); else localStorage.removeItem(tPendKey()); } catch (e) {} }
+function tKeep() { try { if (tDirty()) localStorage.setItem(tPendKey(), JSON.stringify({ picked: [...T.picked], remote: [...T.remote] })); else localStorage.removeItem(tPendKey()); } catch (e) {} }
 const tItems = () => ITEMS.filter(i => i.core);
 const tCats = () => CAT_ORDER.filter(c => tItems().some(i => i.cat === c));
 const tDates = (d) => { if (!d || !d.start) return ''; const [, m1, d1] = d.start.split('-'), [, m2, d2] = (d.end || d.start).split('-'); return m1 === m2 ? `${+d1}–${+d2}.${m1}` : `${+d1}.${m1}–${+d2}.${m2}`; };
@@ -225,7 +225,10 @@ async function tEnter(id) {
     const sec = (data.packing?.sections || []).find(s => s.title === TRIP_SECTION);
     (sec ? sec.items : []).forEach(i => { if (i.wardrobe && ITEMS.some(x => x.no === i.wardrobe)) T.remote.add(i.wardrobe); });
     let pend = null; try { pend = JSON.parse(localStorage.getItem(tPendKey()) || 'null'); } catch (e) {}
-    T.picked = new Set(Array.isArray(pend) ? pend.filter(n => ITEMS.some(x => x.no === n)) : T.remote);
+    // неотправленный выбор — правками поверх того, что сейчас в поездке: вещь, добавленную или убранную тем временем в самих «Поездках», не теряем
+    const picked = Array.isArray(pend) ? new Set(pend) : new Set(T.remote);
+    if (pend && !Array.isArray(pend) && Array.isArray(pend.picked)) { const was = new Set(pend.remote || []), p = new Set(pend.picked); p.forEach(n => { if (!was.has(n)) picked.add(n); }); was.forEach(n => { if (!p.has(n)) picked.delete(n); }); }
+    T.picked = new Set([...picked].filter(n => ITEMS.some(x => x.no === n)));
     T.status = 'ok'; T.open = new Set(); // открывается со всеми категориями свёрнутыми; раскрываются независимо, есть «Развернуть/Свернуть все» (Мария, 10.10.26)
     try { localStorage.setItem('wardrobe-trip', id); } catch (e) {}
   } catch (e) { T.status = 'loaderr'; }
@@ -237,33 +240,39 @@ function tToggle(no) {
   if (T.status === 'err') T.status = 'ok';
   tKeep(); tRender();
 }
-function tApply(data, want) {
+// убираем и добавляем только то, что поменяли здесь с прошлой отправки (was — что было в поездке тогда): вещь, которую добавили
+// или убрали в самих «Поездках» (поиск по гардеробу, крестик), гардероб не стирает и не возвращает (Мария, 15.10.26)
+function tApply(data, want, was) {
   data.packing = data.packing || { sections: [] };
   let sec = data.packing.sections.find(s => s.title === TRIP_SECTION);
   if (!sec) { sec = { title: TRIP_SECTION, items: [] }; data.packing.sections.unshift(sec); }
   const have = new Set(sec.items.filter(i => i.wardrobe).map(i => i.wardrobe));
   sec.items = sec.items.filter(i => {
-    if (!i.wardrobe || want.has(i.wardrobe)) return true;
+    if (!i.wardrobe || want.has(i.wardrobe) || !was.has(i.wardrobe)) return true;
     if (i.done && !T.reminders.includes(i.wardrobe)) T.reminders.push(i.wardrobe);
     return false;
   });
-  ITEMS.filter(it => want.has(it.no) && !have.has(it.no)).forEach(it => {
+  ITEMS.filter(it => want.has(it.no) && !was.has(it.no) && !have.has(it.no)).forEach(it => {
     let at = -1; sec.items.forEach((x, k) => { if ((x.group || '') === it.cat) at = k; });
     if (at < 0) sec.items.push(tLine(it)); else sec.items.splice(at + 1, 0, tLine(it));
   });
   // группы в «Поездках» — в порядке каталога; внутри группы порядок не трогаем (сортировка устойчивая)
   const rank = (g) => { const k = CAT_ORDER.indexOf(g || ''); return k < 0 ? CAT_ORDER.length : k; };
   sec.items.sort((a, b) => rank(a.group) - rank(b.group));
+  return { have, now: new Set(sec.items.filter(i => i.wardrobe && ITEMS.some(x => x.no === i.wardrobe)).map(i => i.wardrobe)) };
 }
 async function tSync() {
   if (T.busy || !tDirty()) return;
-  T.busy = true; T.status = 'busy'; tRender(); const id = T.id, sent = new Set(T.picked);
+  T.busy = true; T.status = 'busy'; tRender(); const id = T.id, sent = new Set(T.picked), was = new Set(T.remote);
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
       const { data, sha } = await window.__trips.read(id);
-      tApply(data, sent);
+      const { have, now } = tApply(data, sent, was);
       await window.__trips.write(id, data, sha, `«${data.title}»: вещи из гардероба`);
-      T.remote = sent; T.status = 'ok'; break;
+      // правки из самих «Поездок» — и в выбор здесь
+      have.forEach(n => { if (!was.has(n) && ITEMS.some(x => x.no === n)) T.picked.add(n); });
+      was.forEach(n => { if (!have.has(n) && sent.has(n)) T.picked.delete(n); });
+      T.remote = now; T.status = 'ok'; break;
     } catch (e) {
       if ((e.status === 409 || e.status === 422) && attempt < 2) { await new Promise(r => setTimeout(r, 800)); continue; }
       T.status = e.status === 403 || e.status === 404 ? 'denied' : 'err'; break;
